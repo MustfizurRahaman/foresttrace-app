@@ -6,6 +6,14 @@ import {
   getCoreHabitatPerYear, getSizeBreakdown, getRangeNames, RAMP_STOPS, RAMP_TICKS,
 } from '../utils/caribouStats';
 
+// Must match `color` in public/data/caribou_ranges.geojson, which is generated
+// by caribou_tiling/code/make_range_geojson.py. Same seven, same hues.
+const RANGE_COLORS = [
+  ['Berens', '#e6194b'], ['Brightsand', '#f58231'], ['Churchill', '#ffe119'],
+  ['Kesagami', '#3cb44b'], ['Nipigon', '#42d4f4'], ['Pagwachuan', '#4363d8'],
+  ['Sydney', '#911eb4'],
+];
+
 // The outputs_v3 MSPA source covers 2015-2025. Listing the real years here
 // keeps the chart honest rather than padding it with years never assessed.
 // Note 2023-2025 are near-identical: the input disturbance layers do not
@@ -21,7 +29,7 @@ const HABITAT_COLOR_ACTIVE = '#21918c';
 const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 function CaribouHabitatModule({ data }) {
-  const { selectedFMUs, selectedYear } = data;
+  const { selectedFMUs, selectedYear, showCaribouRanges, onToggleCaribouRanges } = data;
   const [rows, setRows] = useState([]);
   const [bins, setBins] = useState([]);
   const [ranges, setRanges] = useState([]);
@@ -165,17 +173,25 @@ function CaribouHabitatModule({ data }) {
       </div>
 
       <div className="module-section">
-        <h3>Habitat ({selectedYear})</h3>
-        {renderCurrentYear()}
-        {!loading && trend && (
-          <div className="stat-sub" style={{ fontSize: 11, marginTop: 6 }}>
-            {trend.deltaHa === 0 ? 'No net change' : (
-              <>
-                {trend.deltaHa < 0 ? '▼' : '▲'} {fmt(Math.abs(trend.deltaHa))} ha
-                {trend.pct !== null && ` (${Math.abs(trend.pct).toFixed(1)}%)`}
-                {trend.deltaHa < 0 ? ' lost' : ' gained'} (≥100 ha) {trend.from}–{trend.to}
-              </>
-            )}
+        <label className="switch" htmlFor="caribou-range-toggle">
+          <input
+            id="caribou-range-toggle"
+            type="checkbox"
+            role="switch"
+            checked={!!showCaribouRanges}
+            onChange={(e) => onToggleCaribouRanges?.(e.target.checked)}
+          />
+          <span className="switch-track" aria-hidden="true" />
+          <span>Show caribou population range</span>
+        </label>
+        {showCaribouRanges && (
+          <div className="habitat-shares" style={{ marginTop: 8 }}>
+            {RANGE_COLORS.map(([name, colour]) => (
+              <span key={name}>
+                <i style={{ background: colour }} />
+                <em>{name}</em>
+              </span>
+            ))}
           </div>
         )}
       </div>
@@ -286,6 +302,22 @@ function CaribouHabitatModule({ data }) {
           </div>
         </div>
       )}
+
+      <div className="module-section">
+        <h3>Habitat ({selectedYear})</h3>
+        {renderCurrentYear()}
+        {!loading && trend && (
+          <div className="stat-sub" style={{ fontSize: 11, marginTop: 6 }}>
+            {trend.deltaHa === 0 ? 'No net change' : (
+              <>
+                {trend.deltaHa < 0 ? '▼' : '▲'} {fmt(Math.abs(trend.deltaHa))} ha
+                {trend.pct !== null && ` (${Math.abs(trend.pct).toFixed(1)}%)`}
+                {trend.deltaHa < 0 ? ' lost' : ' gained'} (≥100 ha) {trend.from}–{trend.to}
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       {!loading && assessed && ranges.length > 0 && (
         <div className="module-section">

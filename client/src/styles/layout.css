@@ -1275,3 +1275,77 @@ body.dark-mode .basemap-warning {
 }
 
 
+
+
+/* Sliding toggle. Built on a real <input type=checkbox> that is visually hidden
+   rather than a div, so label association, keyboard focus and :checked all work
+   without JS. Greens match the .module-option checkbox. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: #c9ccc9;
+  transition: background 0.18s ease;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: #2f8f5b;
+}
+
+.switch input:checked + .switch-track::after {
+  transform: translateX(14px);
+}
+
+/* Focus has to be visible on the track, since the input itself is hidden. */
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid #2f8f5b;
+  outline-offset: 2px;
+}
+
+body.dark-mode .switch {
+  color: #d6d6d6;
+}
+
+body.dark-mode .switch-track {
+  background: #4a4a4a;
+}
+
+body.dark-mode .switch input:checked + .switch-track {
+  background: #9fdcb9;
+}
+
+body.dark-mode .switch-track::after {
+  background: #1e1e1e;
+}

@@ -264,6 +264,48 @@ function DrawingTools({ mapRef }) {
   return null;
 }
 
+// Caribou population ranges (OMNR). Only the seven the pipeline models are in
+// the file, so the overlay never implies coverage that does not exist. Each
+// feature carries its own colour, so the map and the panel legend read from one
+// source and cannot drift.
+function CaribouRangeBoundaries({ visible }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    // Fetch once, on first reveal -- 166 KB that most sessions never need.
+    if (!visible || data) return undefined;
+    let cancelled = false;
+    fetch(`${DATA_BASE_URL}/data/caribou_ranges.geojson`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`caribou_ranges.geojson: HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((json) => { if (!cancelled) setData(json); })
+      .catch((err) => console.error('[CaribouRanges]', err));
+    return () => { cancelled = true; };
+  }, [visible, data]);
+
+  const onEachFeature = useCallback((feature, layer) => {
+    layer.options.pmIgnore = true;
+    const colour = feature.properties?.color || '#333333';
+    layer.setStyle({
+      color: colour,
+      weight: 2,
+      opacity: 1,
+      // Outline only, matching RegionBoundaries. Leaflet draws vectors in
+      // overlayPane, always above tilePane, so any fill here would tint the
+      // habitat raster it is meant to annotate.
+      fillOpacity: 0,
+    });
+    if (feature.properties?.RANGE_NAME) {
+      layer.bindTooltip(feature.properties.RANGE_NAME, { sticky: true });
+    }
+  }, []);
+
+  if (!visible || !data) return null;
+  return <GeoJSON key="caribou-ranges" data={data} onEachFeature={onEachFeature} />;
+}
+
 function RegionBoundaries({ selectedFMUs, useOntarioOverview, basemapMode }) {
   const [regionsData, setRegionsData] = useState(null);
   const legacyRegionsRef = useRef(null);
@@ -439,6 +481,7 @@ function App() {
   }, []);
   const [biomassHistogram, setBiomassHistogram] = useState(createEmptyBiomassHistogram());
   const [rasterOpacity, setRasterOpacity] = useState(1);
+  const [showCaribouRanges, setShowCaribouRanges] = useState(false);
   const [selectedModuleId, setSelectedModuleId] = useState(MODULES[0]?.id);
   const selectedModule = useMemo(
     () => MODULES.find((m) => m.id === selectedModuleId) ?? MODULES[0],
@@ -623,6 +666,8 @@ function App() {
     biomassHistogram,
     selectedFMUs,
     selectedYear,
+    showCaribouRanges,
+    onToggleCaribouRanges: setShowCaribouRanges,
   };
 
   const handleModuleSelect = useCallback((module) => {
@@ -851,6 +896,7 @@ function App() {
             })}
 
             <RegionBoundaries selectedFMUs={selectedFMUs} useOntarioOverview={useOntarioOverview} basemapMode={basemapMode} />
+            <CaribouRangeBoundaries visible={showCaribouRanges} />
             <DrawingTools mapRef={mapRef} />
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />
