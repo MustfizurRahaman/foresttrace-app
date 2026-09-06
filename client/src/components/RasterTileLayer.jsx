@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { BIOMASS_BINS, createEmptyBiomassHistogram } from '../utils/biomassHistogram';
-import { makeTileQueue, loadTileComposite, loadTileFromParentChain } from '../utils/tileLoading';
+import { createEmptyBiomassHistogram } from '../utils/biomassHistogram';
+import { processTile } from '../utils/tileWorkerClient';
+import { needsBoundaryMask, preloadBoundaryManifest, isWithinReferenceBoundarySync } from '../utils/clearcutBoundaryMask';
 
 const NATIVE_TILE_ZOOM_LEVELS = [6, 7, 8, 9, 10, 11, 12, 13, 14];
 const TILE_ZOOM_LEVELS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
@@ -15,7 +16,20 @@ const NATIVE_TILE_ZOOM_RANGE = {
   max: Math.max(...NATIVE_TILE_ZOOM_LEVELS),
 };
 const RASTER_TILE_CLASS = 'foresttrace-raster-tile';
-const USE_BIOMASS_CANVAS_PIPELINE = false;
+// Delay before a tileUrl change (e.g. dragging the year slider) triggers an
+// actual tile refetch — collapses many rapid ticks into one redraw.
+const TILE_REDRAW_DEBOUNCE_MS = 200;
+
+// Layer types whose tiles need per-pixel recoloring + stat tallying. That
+// work happens in a worker (see tileWorkerClient) and the resulting canvas
+// tiles are added to the map imperatively — these layers render nothing
+// through react-leaflet's <TileLayer>.
+const PROCESSED_LAYER_IDS = new Set([
+  'clearcut-accumulated',
+  'clearcut-annual',
+  'wildfire-burned',
+  'biomass-density',
+]);
 
 function wrapTileX(x, z) {
   const tilesPerAxis = 2 ** z;
@@ -37,55 +51,6 @@ function normalizeTileCoords(coords) {
   };
 }
 
-function hasOpaquePixels(ctx) {
-  const imageData = ctx.getImageData(0, 0, 256, 256);
-  const pixels = imageData.data;
-  for (let i = 0; i < pixels.length; i += 4) {
-    if (pixels[i + 3] > 0) return true;
-  }
-  return false;
-}
-
-function isStaleTileZoom(map, tileZ) {
-  const tileZoom = map && typeof map._tileZoom === 'number' ? map._tileZoom : null;
-  return tileZoom !== null && tileZoom !== tileZ;
-}
-
-function tileDebug(event, payload) {
-  if (typeof window === 'undefined' || !window.__FORESTTRACE_TILE_DEBUG__) return;
-  console.log('[TileDebug]', event, payload);
-}
-
-function getColorForBiomassIntensity(rawIntensity) {
-  const agb = (rawIntensity / 255) * 1000;
-  if (agb < 10) {
-    const t = agb / 10;
-    return { r: Math.round(220 - (100 * t)), g: Math.round(180 - (95 * t)), b: Math.round(140 - (100 * t)) };
-  }
-  if (agb < 25) {
-    const t = (agb - 10) / 15;
-    return { r: Math.round(120 + (135 * t)), g: Math.round(85 + (155 * t)), b: Math.round(40) };
-  }
-  if (agb < 40) {
-    const t = (agb - 25) / 15;
-    return { r: Math.round(255), g: Math.round(240 - (50 * t)), b: Math.round(40) };
-  }
-  if (agb < 50) {
-    const t = (agb - 40) / 10;
-    return { r: Math.round(255), g: Math.round(190 + (65 * t)), b: Math.round(40) };
-  }
-  if (agb < 85) {
-    const t = (agb - 50) / 35;
-    return { r: Math.round(50 * (1 - t)), g: Math.round(220 + (35 * t)), b: Math.round(0) };
-  }
-  if (agb < 120) {
-    const t = (agb - 85) / 35;
-    return { r: 0, g: Math.round(255), b: Math.round(20 * t) };
-  }
-  const t = Math.min(1, (agb - 120) / 30);
-  return { r: 0, g: Math.round(255 - (90 * t)), b: Math.round(50 * t) };
-}
-
 function RasterTileLayer({
   onStatsUpdate,
   onBiomassHistogramUpdate,
@@ -94,6 +59,8 @@ function RasterTileLayer({
   tileUrl,
   tms = true,
   layerId = '',
+  region = null,
+  year = null,
 }) {
   const map = useMap();
   const lowResLayerRef = useRef(null);
@@ -102,8 +69,9 @@ function RasterTileLayer({
   const tileCountsRef = useRef(new Map());
   const biomassTileHistogramRef = useRef(new Map());
   const styleTagRef = useRef(null);
-  const processedTileCacheRef = useRef(new Map());
-  const activeTileRequestsRef = useRef(new Map());
+  const tileUrlRef = useRef(tileUrl);
+  const yearRef = useRef(year);
+  const isFirstTileUrlSync = useRef(true);
   const onStatsUpdateRef = useRef(onStatsUpdate);
   const onBiomassHistogramUpdateRef = useRef(onBiomassHistogramUpdate);
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -111,7 +79,6 @@ function RasterTileLayer({
   onStatsUpdateRef.current = onStatsUpdate;
   onBiomassHistogramUpdateRef.current = onBiomassHistogramUpdate;
   onLoadingChangeRef.current = onLoadingChange;
-
 
   useEffect(() => {
     if (!styleTagRef.current) {
@@ -160,145 +127,38 @@ function RasterTileLayer({
     if (onStatsUpdateRef.current) onStatsUpdateRef.current(percentage);
   }, []);
 
+  // Generic fallback for layer types with no dedicated recoloring (currently
+  // the placeholder forest/wildlife layers): just detects pure-red pixels for
+  // the visible-percentage stat, no worker involved.
   const handleTileLoad = useCallback((e) => {
+    // Habitat tiles already contain the color ramp and transparency.
+    if (layerId === 'caribou-habitat') return;
+
     const img = e.tile;
+    if (!(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)) return;
 
-    if ((layerId === 'clearcut-accumulated' || layerId === 'clearcut-annual') && img?.dataset?.clearcutProcessed === 'true') {
-      return;
-    }
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = img.naturalWidth;
+    tmpCanvas.height = img.naturalHeight;
+    const ctx = tmpCanvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const pixels = ctx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height).data;
 
-    if (layerId === 'biomass-density' && img?.dataset?.biomassProcessed === 'true') {
-      return;
-    }
-
-    if (layerId === 'wildfire-burned' && img?.dataset?.wildfireProcessed === 'true') {
-      return;
-    }
-
-    // Caribou habitat tiles are pre-coloured by their tiler and carry a 5-class
-    // viridis ramp (with class 1 at reduced alpha) that a single-hue tint would
-    // destroy, so they skip the canvas pass entirely.
-    if (layerId === 'caribou-habitat') {
-      return;
-    }
-
-    if (img.complete && img.naturalWidth > 0 && img.naturalHeight > 0) {
-      const tmpCanvas = document.createElement('canvas');
-      tmpCanvas.width = img.naturalWidth;
-      tmpCanvas.height = img.naturalHeight;
-      const ctx = tmpCanvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      const pixels = ctx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height).data;
-
-      let redCount = 0;
-      let totalCount = 0;
-      const tileHistogram = layerId === 'biomass-density' ? createEmptyBiomassHistogram() : null;
-      const pixelAreaHa = layerId === 'biomass-density' && e.coords
-        ? getTilePixelAreaHa(e.coords)
-        : 0;
-
-      for (let i = 0; i < pixels.length; i += 4) {
-        const r = pixels[i];
-        const g = pixels[i + 1];
-        const b = pixels[i + 2];
-        const a = pixels[i + 3];
-        totalCount += 1;
-
-        if (layerId === 'clearcut-accumulated' || layerId === 'clearcut-annual') {
-          if (a > 0 && r > 200) {
-            redCount += 1;
-          }
-          if (a === 0) continue;
-          const intensity = r / 255;
-          if (layerId === 'clearcut-annual') {
-            // Yellow tint (#FFD700)
-            pixels[i]     = Math.round((r * 0.35) + (255 * intensity * 0.65));
-            pixels[i + 1] = Math.round(215 * intensity);
-            pixels[i + 2] = Math.round(b * 0.05);
-          } else {
-            // Red tint for accumulated
-            pixels[i]     = Math.round((r * 0.35) + (255 * intensity * 0.65));
-            pixels[i + 1] = Math.round(g * 0.18);
-            pixels[i + 2] = Math.round(b * 0.18);
-          }
-          continue;
-        }
-
-        if (layerId === 'wildfire-burned') {
-          if (a > 0 && r > 200) {
-            redCount += 1;
-          }
-          if (a === 0) continue;
-          const intensity = r / 255;
-          // Fire red (#F8420B). Distinct from the clearcut-accumulated red
-          // (255,46,46), which is pinker, and from the clearcut-annual yellow.
-          pixels[i]     = Math.round(248 * intensity);
-          pixels[i + 1] = Math.round(66 * intensity);
-          pixels[i + 2] = Math.round(11 * intensity);
-          continue;
-        }
-
-        if (layerId === 'biomass-density') {
-          if (a === 0) continue;
-
-          const agb = (g / 255) * 1000;
-          if (tileHistogram) {
-            for (let binIdx = 0; binIdx < BIOMASS_BINS.length; binIdx += 1) {
-              const bin = BIOMASS_BINS[binIdx];
-              if (agb >= bin.min && agb < bin.max) {
-                tileHistogram[binIdx].pixels += 1;
-                tileHistogram[binIdx].area += pixelAreaHa;
-                break;
-              }
-            }
-          }
-
-          const color = getColorForBiomassIntensity(g);
-          pixels[i] = color.r;
-          pixels[i + 1] = color.g;
-          pixels[i + 2] = color.b;
-          continue;
-        }
-
-        if (a > 0 && r === 255 && g === 0 && b === 0) {
-          redCount += 1;
-        }
-      }
-
-      if (layerId === 'clearcut-accumulated' || layerId === 'clearcut-annual') {
-        ctx.putImageData(new ImageData(pixels, tmpCanvas.width, tmpCanvas.height), 0, 0);
-        img.dataset.clearcutProcessed = 'true';
-        img.src = tmpCanvas.toDataURL('image/png');
-      }
-
-      if (layerId === 'wildfire-burned') {
-        ctx.putImageData(new ImageData(pixels, tmpCanvas.width, tmpCanvas.height), 0, 0);
-        img.dataset.wildfireProcessed = 'true';
-        img.src = tmpCanvas.toDataURL('image/png');
-      }
-
-      if (layerId === 'biomass-density') {
-        ctx.putImageData(new ImageData(pixels, tmpCanvas.width, tmpCanvas.height), 0, 0);
-        img.dataset.biomassProcessed = 'true';
-        img.src = tmpCanvas.toDataURL('image/png');
-
-        if (e.coords && tileHistogram) {
-          const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
-          biomassTileHistogramRef.current.set(key, tileHistogram);
-          emitBiomassHistogram();
-        }
-      }
-
-      if (e.coords && layerId !== 'biomass-density') {
-        const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
-        tileCountsRef.current.set(key, { red: redCount, total: totalCount });
-      }
-
-      if (layerId !== 'biomass-density') {
-        updateVisiblePercentage();
+    let redCount = 0;
+    let totalCount = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      totalCount += 1;
+      if (pixels[i + 3] > 0 && pixels[i] === 255 && pixels[i + 1] === 0 && pixels[i + 2] === 0) {
+        redCount += 1;
       }
     }
-  }, [emitBiomassHistogram, layerId, updateVisiblePercentage]);
+
+    if (e.coords) {
+      const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
+      tileCountsRef.current.set(key, { red: redCount, total: totalCount });
+    }
+    updateVisiblePercentage();
+  }, [layerId, updateVisiblePercentage]);
 
   const handleClearcutTileError = useCallback((e) => {
     if (!e.coords) return;
@@ -314,28 +174,6 @@ function RasterTileLayer({
     updateVisiblePercentage();
   }, [updateVisiblePercentage]);
 
-  const handleBiomassTileError = useCallback((e) => {
-    if (!e.coords) return;
-    const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
-    biomassTileHistogramRef.current.delete(key);
-    emitBiomassHistogram();
-  }, [emitBiomassHistogram]);
-
-  const handleBiomassTileUnload = useCallback((e) => {
-    if (!e.coords) return;
-    const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
-    biomassTileHistogramRef.current.delete(key);
-    emitBiomassHistogram();
-  }, [emitBiomassHistogram]);
-
-  const getTilePixelAreaHa = (coords) => {
-    const tilesPerAxis = Math.pow(2, coords.z);
-    const centerY = coords.y + 0.5;
-    const latRad = Math.atan(Math.sinh(Math.PI * (1 - (2 * centerY) / tilesPerAxis)));
-    const metersPerPixel = (156543.03392 * Math.cos(latRad)) / tilesPerAxis;
-    return (metersPerPixel * metersPerPixel) / 10000;
-  };
-
   useEffect(() => {
     if (!map) return;
     const handleMove = () => updateVisiblePercentage();
@@ -347,64 +185,35 @@ function RasterTileLayer({
     };
   }, [map, updateVisiblePercentage]);
 
+  // Worker-backed canvas layer for clearcut/wildfire/biomass tiles: fetches
+  // each tile at its native zoom, crop-scales it onto a 256x256 canvas,
+  // hands the raw pixels to the worker for recoloring + stat tallying, then
+  // paints the result. Keeps the pixel loop and PNG re-encode off the main
+  // thread entirely.
+  //
+  // The layer instance itself is created once per map/layerId/tms — NOT per
+  // tileUrl — so a year change (which only changes tileUrl) doesn't tear
+  // down and rebuild the whole GridLayer (and the onLoadingChange/histogram
+  // churn that came with it). createTile reads the URL from tileUrlRef at
+  // request time; the effect below updates that ref and calls redraw() to
+  // refetch tiles in place, the same way react-leaflet's own <TileLayer>
+  // handles a url change via setUrl instead of remounting.
   useEffect(() => {
-    if (!map || layerId !== 'biomass-density' || !USE_BIOMASS_CANVAS_PIPELINE) return;
+    if (!map || !PROCESSED_LAYER_IDS.has(layerId)) return undefined;
 
-    if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
-    const activeTileRequests = activeTileRequestsRef.current;
+    const isBiomass = layerId === 'biomass-density';
+    const biomassHistogramMap = biomassTileHistogramRef.current;
+    const tileCountsMap = tileCountsRef.current;
 
-    const biomassHistogram = biomassTileHistogramRef.current;
-    biomassHistogram.clear();
-    if (onBiomassHistogramUpdateRef.current) {
-      onBiomassHistogramUpdateRef.current(createEmptyBiomassHistogram());
+    if (needsBoundaryMask(layerId, region, yearRef.current)) {
+      preloadBoundaryManifest();
     }
 
-    const tileLoadQueue = makeTileQueue(8);
-    const handleZoomStart = () => {
-      activeTileRequests.clear();
-    };
-    map.on('zoomstart', handleZoomStart);
+    if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
 
-    const CanvasTileLayer = L.GridLayer.extend({
+    const ProcessedTileLayer = L.GridLayer.extend({
       createTile(coords, done) {
         const normalizedCoords = normalizeTileCoords(coords);
-        const tileKey = `${normalizedCoords.z}/${normalizedCoords.x}/${normalizedCoords.y}`;
-        tileDebug('biomass:create', { tileKey, tileZoom: map?._tileZoom, mapZoom: map?.getZoom?.() });
-        const urlCache = processedTileCacheRef.current.get(tileUrl);
-
-        if (urlCache && urlCache.has(tileKey)) {
-          const { canvas: cachedCanvas, histogram } = urlCache.get(tileKey);
-          const newCanvas = document.createElement('canvas');
-          newCanvas.width = 256;
-          newCanvas.height = 256;
-          newCanvas.getContext('2d').drawImage(cachedCanvas, 0, 0);
-          biomassTileHistogramRef.current.set(tileKey, histogram);
-          emitBiomassHistogram();
-          done(null, newCanvas);
-          return newCanvas;
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const ctx = canvas.getContext('2d');
-
-        if (activeTileRequests.has(tileKey)) {
-          activeTileRequests.get(tileKey).then((sharedCanvas) => {
-            if (sharedCanvas) {
-              ctx.drawImage(sharedCanvas, 0, 0);
-            }
-            done(null, canvas);
-          });
-          return canvas;
-        }
-
-        let resolveInFlight;
-        const inFlightPromise = new Promise((resolve) => {
-          resolveInFlight = resolve;
-        });
-        activeTileRequests.set(tileKey, inFlightPromise);
-
         const nativeZ = Math.min(normalizedCoords.z, NATIVE_TILE_ZOOM_RANGE.max);
         const zoomDiff = normalizedCoords.z - nativeZ;
         const scale = 2 ** zoomDiff;
@@ -418,350 +227,164 @@ function RasterTileLayer({
         const srcX = (normalizedCoords.x % scale) * srcSize;
         const srcY = (normalizedCoords.y % scale) * srcSize;
 
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        const applyMask = needsBoundaryMask(layerId, region, yearRef.current);
+        if (applyMask) {
+          const withinBoundary = isWithinReferenceBoundarySync(nativeCoords.z, nativeCoords.x, nativeCoords.y);
+          if (withinBoundary === false) {
+            // Known to fall outside the 2021 reference footprint — skip the
+            // fetch entirely and leave the tile blank.
+            done(null, canvas);
+            return canvas;
+          }
+        }
+
         const img = new Image();
         img.crossOrigin = 'anonymous';
+        // Stashed so a superseded tile (panned away, or redrawn for a new
+        // year before this one finished) can abort the in-flight fetch
+        // instead of leaving it to run to completion in the background —
+        // see handleTileUnload below.
+        canvas._pendingImage = img;
 
         img.onload = () => {
-          ctx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, 256, 256);
+          const tmpCanvas = document.createElement('canvas');
+          tmpCanvas.width = 256;
+          tmpCanvas.height = 256;
+          const tmpCtx = tmpCanvas.getContext('2d');
+          tmpCtx.drawImage(img, srcX, srcY, srcSize, srcSize, 0, 0, 256, 256);
+          const imageData = tmpCtx.getImageData(0, 0, 256, 256);
 
-          const imageData = ctx.getImageData(0, 0, 256, 256);
-          const pixels = imageData.data;
+          delete canvas._pendingImage;
 
-          const tileHistogram = createEmptyBiomassHistogram();
-          const pixelAreaHa = getTilePixelAreaHa(normalizedCoords);
+          if (applyMask) {
+            const withinBoundary = isWithinReferenceBoundarySync(nativeCoords.z, nativeCoords.x, nativeCoords.y);
+            if (withinBoundary === false) {
+              done(null, canvas);
+              return;
+            }
+          }
 
-          for (let i = 0; i < pixels.length; i += 4) {
-            const g = pixels[i + 1];
-            const a = pixels[i + 3];
-            if (a === 0) continue;
+          processTile(layerId, imageData, normalizedCoords).then((result) => {
+            ctx.putImageData(result.imageData, 0, 0);
 
-            const agb = (g / 255) * 1000;
-            for (let binIdx = 0; binIdx < BIOMASS_BINS.length; binIdx += 1) {
-              const bin = BIOMASS_BINS[binIdx];
-              if (agb >= bin.min && agb < bin.max) {
-                tileHistogram[binIdx].pixels += 1;
-                tileHistogram[binIdx].area += pixelAreaHa;
-                break;
-              }
+            const key = `${normalizedCoords.z}/${normalizedCoords.x}/${normalizedCoords.y}`;
+            if (isBiomass) {
+              biomassTileHistogramRef.current.set(key, result.histogram);
+              emitBiomassHistogram();
+            } else {
+              tileCountsRef.current.set(key, { red: result.redCount, total: result.totalCount });
+              updateVisiblePercentage();
             }
 
-            const color = getColorForBiomassIntensity(g);
-            pixels[i] = color.r;
-            pixels[i + 1] = color.g;
-            pixels[i + 2] = color.b;
-          }
-
-          biomassTileHistogramRef.current.set(tileKey, tileHistogram);
-          emitBiomassHistogram();
-
-          ctx.putImageData(imageData, 0, 0);
-          if (!processedTileCacheRef.current.has(tileUrl)) {
-            processedTileCacheRef.current.set(tileUrl, new Map());
-          }
-          processedTileCacheRef.current.get(tileUrl).set(tileKey, { canvas, histogram: tileHistogram });
-          resolveInFlight(canvas);
-          activeTileRequests.delete(tileKey);
-          done(null, canvas);
+            done(null, canvas);
+          });
         };
 
         img.onerror = () => {
-          const finalizeBiomassTile = (shouldCache = true) => {
-            const imageData = ctx.getImageData(0, 0, 256, 256);
-            const pixels = imageData.data;
-            const tileHistogram = createEmptyBiomassHistogram();
-            const pixelAreaHa = getTilePixelAreaHa(normalizedCoords);
-
-            for (let i = 0; i < pixels.length; i += 4) {
-              const g = pixels[i + 1];
-              const a = pixels[i + 3];
-              if (a === 0) continue;
-
-              const agb = (g / 255) * 1000;
-              for (let binIdx = 0; binIdx < BIOMASS_BINS.length; binIdx += 1) {
-                const bin = BIOMASS_BINS[binIdx];
-                if (agb >= bin.min && agb < bin.max) {
-                  tileHistogram[binIdx].pixels += 1;
-                  tileHistogram[binIdx].area += pixelAreaHa;
-                  break;
-                }
-              }
-
-              const color = getColorForBiomassIntensity(g);
-              pixels[i] = color.r;
-              pixels[i + 1] = color.g;
-              pixels[i + 2] = color.b;
-            }
-
-            biomassTileHistogramRef.current.set(tileKey, tileHistogram);
-            emitBiomassHistogram();
-            ctx.putImageData(imageData, 0, 0);
-            if (shouldCache) {
-              if (!processedTileCacheRef.current.has(tileUrl)) {
-                processedTileCacheRef.current.set(tileUrl, new Map());
-              }
-              processedTileCacheRef.current.get(tileUrl).set(tileKey, { canvas, histogram: tileHistogram });
-            }
-            resolveInFlight(canvas);
-            activeTileRequests.delete(tileKey);
-            done(null, canvas);
-          };
-
-          const drawFromCachedParent = () => {
-            const urlCache = processedTileCacheRef.current.get(tileUrl);
-            if (!urlCache) return false;
-
-            for (let levelUp = 1; levelUp <= 4; levelUp += 1) {
-              const parentZ = normalizedCoords.z - levelUp;
-              if (parentZ < TILE_ZOOM_RANGE.min) break;
-
-              const scale = 2 ** levelUp;
-              const parentX = Math.floor(normalizedCoords.x / scale);
-              const parentY = Math.floor(normalizedCoords.y / scale);
-              const parentKey = `${parentZ}/${parentX}/${parentY}`;
-              const cachedParent = urlCache.get(parentKey);
-              if (!cachedParent?.canvas) continue;
-
-              const srcSize = 256 / scale;
-              const srcX = (((normalizedCoords.x % scale) + scale) % scale) * srcSize;
-              const srcY = (((normalizedCoords.y % scale) + scale) % scale) * srcSize;
-
-              ctx.drawImage(
-                cachedParent.canvas,
-                srcX,
-                srcY,
-                srcSize,
-                srcSize,
-                0,
-                0,
-                256,
-                256,
-              );
-
-              return true;
-            }
-
-            return false;
-          };
-
-          const failTile = () => {
-            if (drawFromCachedParent()) {
-              tileDebug('biomass:cache-parent-rescue', { tileKey });
-              finalizeBiomassTile(false);
-              return;
-            }
-
-            tileDebug('biomass:fail', {
-              tileKey,
-              tileZoom: map?._tileZoom,
-              mapZoom: map?.getZoom?.(),
-            });
-            resolveInFlight(null);
-            activeTileRequests.delete(tileKey);
-            done(null, canvas);
-          };
-
-          if (isStaleTileZoom(map, normalizedCoords.z)) {
-            failTile();
-            return;
-          }
-
-          loadTileFromParentChain(
-            tileLoadQueue,
-            ctx,
-            tileUrl,
-            nativeCoords.z,
-            nativeCoords.x,
-            nativeCoords.y,
-            3,
-            (parentSuccess) => {
-              if (isStaleTileZoom(map, normalizedCoords.z)) {
-                failTile();
-                return;
-              }
-
-              if (parentSuccess && hasOpaquePixels(ctx)) {
-                tileDebug('biomass:parent-rescue', { tileKey });
-                finalizeBiomassTile(true);
-                return;
-              }
-
-              if (nativeCoords.z >= NATIVE_TILE_ZOOM_RANGE.max) {
-                failTile();
-                return;
-              }
-
-              let pending = 4;
-              let anyCompositeSuccess = false;
-              const half = 128;
-              const onAllDone = (childSuccess) => {
-                if (childSuccess) anyCompositeSuccess = true;
-                pending -= 1;
-                if (pending !== 0) return;
-
-                if (isStaleTileZoom(map, normalizedCoords.z)) {
-                  failTile();
-                  return;
-                }
-
-                if (!anyCompositeSuccess && !hasOpaquePixels(ctx)) {
-                  failTile();
-                  return;
-                }
-
-                tileDebug('biomass:child-rescue', { tileKey, anyCompositeSuccess });
-
-                finalizeBiomassTile(false);
-              };
-
-              for (let dx = 0; dx < 2; dx += 1) {
-                for (let dy = 0; dy < 2; dy += 1) {
-                  loadTileComposite(
-                    tileLoadQueue,
-                    ctx,
-                    tileUrl,
-                    nativeCoords.z + 1,
-                    nativeCoords.x * 2 + dx,
-                    nativeCoords.y * 2 + dy,
-                    dx * half,
-                    dy * half,
-                    half,
-                    NATIVE_TILE_ZOOM_RANGE.max,
-                    1,
-                    onAllDone,
-                  );
-                }
-              }
-            },
-          );
+          delete canvas._pendingImage;
+          done(new Error(`Failed to load tile ${nativeCoords.z}/${nativeCoords.x}/${nativeCoords.y}`), canvas);
         };
 
-        const url = L.Util.template(tileUrl, nativeCoords);
-        img.src = url;
+        const tileY = tms ? (2 ** nativeCoords.z - 1 - nativeCoords.y) : nativeCoords.y;
+        img.src = L.Util.template(tileUrlRef.current, { ...nativeCoords, y: tileY });
 
         return canvas;
       },
     });
 
-    const canvasLayer = new CanvasTileLayer({
+    const gridLayer = new ProcessedTileLayer({
       minZoom: TILE_ZOOM_RANGE.min,
       maxZoom: TILE_ZOOM_RANGE.max,
-      tms,
+      keepBuffer: 1,
       zIndex: 10,
       className: RASTER_TILE_CLASS,
     });
 
-    canvasLayerRef.current = canvasLayer;
-    canvasLayer.addTo(map);
+    canvasLayerRef.current = gridLayer;
+    gridLayer.addTo(map);
 
-    const handleZoomEndRefresh = () => {
-      // Re-request currently visible tiles after zoom settles to recover
-      // from transient misses during animation.
-      activeTileRequests.clear();
-      canvasLayer.redraw();
+    const handleTileUnload = (e) => {
+      const pendingImage = e.tile && e.tile._pendingImage;
+      if (pendingImage) {
+        pendingImage.onload = null;
+        pendingImage.onerror = null;
+        pendingImage.src = ''; // aborts the in-flight request
+        delete e.tile._pendingImage;
+      }
+      if (!e.coords) return;
+      const key = `${e.coords.z}/${e.coords.x}/${e.coords.y}`;
+      if (isBiomass) {
+        biomassTileHistogramRef.current.delete(key);
+        emitBiomassHistogram();
+      } else {
+        tileCountsRef.current.delete(key);
+        updateVisiblePercentage();
+      }
     };
-    map.on('zoomend', handleZoomEndRefresh);
+    gridLayer.on('tileunload', handleTileUnload);
+    gridLayer.on('tileerror', handleTileUnload);
 
-    const handleTileUnload = (event) => {
-      if (!event.coords) return;
-      const key = `${event.coords.z}/${event.coords.x}/${event.coords.y}`;
-      biomassTileHistogramRef.current.delete(key);
-      emitBiomassHistogram();
-    };
-
-    canvasLayer.on('tileunload', handleTileUnload);
-    canvasLayer.once('tileload', () => {
+    const handleLoad = () => {
       if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
+      if (!isBiomass) updateVisiblePercentage();
+    };
+    gridLayer.on('load', handleLoad);
+    gridLayer.on('loading', () => {
+      if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
     });
 
     return () => {
-      tileLoadQueue.cancel();
-      map.off('zoomstart', handleZoomStart);
-      map.off('zoomend', handleZoomEndRefresh);
-      activeTileRequests.clear();
-      if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
-      canvasLayer.off('tileunload', handleTileUnload);
-      map.removeLayer(canvasLayer);
+      gridLayer.off('tileunload', handleTileUnload);
+      gridLayer.off('tileerror', handleTileUnload);
+      gridLayer.off('load', handleLoad);
+      map.removeLayer(gridLayer);
       canvasLayerRef.current = null;
-      biomassHistogram.clear();
-      if (onBiomassHistogramUpdateRef.current) {
-        onBiomassHistogramUpdateRef.current(createEmptyBiomassHistogram());
+      if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
+      if (isBiomass) {
+        biomassHistogramMap.clear();
+        if (onBiomassHistogramUpdateRef.current) {
+          onBiomassHistogramUpdateRef.current(createEmptyBiomassHistogram());
+        }
+      } else {
+        tileCountsMap.clear();
+        updateVisiblePercentage();
       }
     };
-  }, [map, layerId, tileUrl, tms, emitBiomassHistogram]);
+  }, [map, layerId, tms, region, emitBiomassHistogram, updateVisiblePercentage]);
 
-  if (layerId === 'biomass-density' && USE_BIOMASS_CANVAS_PIPELINE) {
+  // Keeps the GridLayer above alive across a tileUrl change (e.g. the year
+  // slider) — updates the ref createTile reads from immediately (cheap), but
+  // debounces the actual redraw(). redraw() re-fetches every visible tile
+  // from scratch, and a slider drag fires one tileUrl change per pixel of
+  // movement — without debouncing, a single drag triggers a full refetch
+  // storm per tick. Waiting for the drag to pause collapses that into one
+  // redraw per interaction instead of one per tick.
+  useEffect(() => {
+    tileUrlRef.current = tileUrl;
+    yearRef.current = year;
+    if (isFirstTileUrlSync.current) {
+      isFirstTileUrlSync.current = false;
+      return undefined;
+    }
+    const timer = setTimeout(() => {
+      if (canvasLayerRef.current) {
+        canvasLayerRef.current.redraw();
+      }
+    }, TILE_REDRAW_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [tileUrl, year]);
+
+  if (PROCESSED_LAYER_IDS.has(layerId)) {
     return null;
   }
 
-  if (layerId === 'biomass-density') {
-    return (
-      <>
-        <TileLayer
-          ref={lowResLayerRef}
-          url={tileUrl}
-          minZoom={TILE_ZOOM_RANGE.min}
-          maxZoom={12}
-          maxNativeZoom={12}
-          zIndex={10}
-          className={RASTER_TILE_CLASS}
-          tms={tms}
-          crossOrigin="anonymous"
-          keepBuffer={1}
-          pmIgnore={true}
-          eventHandlers={{
-            loading: () => {
-              if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
-            },
-            load: () => {
-              if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
-            },
-            tileload: (e) => {
-              handleTileLoad(e);
-            },
-            tileerror: (e) => {
-              handleBiomassTileError(e);
-            },
-            tileunload: (e) => {
-              handleBiomassTileUnload(e);
-            },
-          }}
-        />
-        <TileLayer
-          ref={highResLayerRef}
-          url={tileUrl}
-          minZoom={13}
-          maxZoom={TILE_ZOOM_RANGE.max}
-          maxNativeZoom={NATIVE_TILE_ZOOM_RANGE.max}
-          zIndex={10}
-          className={RASTER_TILE_CLASS}
-          tms={tms}
-          crossOrigin="anonymous"
-          keepBuffer={1}
-          pmIgnore={true}
-          eventHandlers={{
-            loading: () => {
-              if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
-            },
-            load: () => {
-              if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
-            },
-            tileload: (e) => {
-              handleTileLoad(e);
-            },
-            tileerror: (e) => {
-              handleBiomassTileError(e);
-            },
-            tileunload: (e) => {
-              handleBiomassTileUnload(e);
-            },
-          }}
-        />
-      </>
-    );
-  }
-
-  if (layerId === 'clearcut-accumulated' || layerId === 'clearcut-annual'
-      || layerId === 'wildfire-burned' || layerId === 'caribou-habitat') {
+  // Keep pre-colored habitat tiles on one native-zoom-aware image layer.
+  if (layerId === 'caribou-habitat') {
     return (
       <TileLayer
         ref={highResLayerRef}
@@ -775,22 +398,8 @@ function RasterTileLayer({
         crossOrigin="anonymous"
         keepBuffer={1}
         eventHandlers={{
-          loading: () => {
-            if (onLoadingChangeRef.current) onLoadingChangeRef.current(true);
-          },
-          load: () => {
-            if (onLoadingChangeRef.current) onLoadingChangeRef.current(false);
-            updateVisiblePercentage();
-          },
-          tileload: (e) => {
-            handleTileLoad(e);
-          },
-          tileerror: (e) => {
-            handleClearcutTileError(e);
-          },
-          tileunload: (e) => {
-            handleClearcutTileUnload(e);
-          },
+          loading: () => onLoadingChangeRef.current?.(true),
+          load: () => onLoadingChangeRef.current?.(false),
         }}
       />
     );
@@ -813,6 +422,12 @@ function RasterTileLayer({
           tileload: (e) => {
             handleTileLoad(e);
           },
+          tileerror: (e) => {
+            handleClearcutTileError(e);
+          },
+          tileunload: (e) => {
+            handleClearcutTileUnload(e);
+          },
         }}
       />
       <TileLayer
@@ -829,6 +444,12 @@ function RasterTileLayer({
         eventHandlers={{
           tileload: (e) => {
             handleTileLoad(e);
+          },
+          tileerror: (e) => {
+            handleClearcutTileError(e);
+          },
+          tileunload: (e) => {
+            handleClearcutTileUnload(e);
           },
         }}
       />

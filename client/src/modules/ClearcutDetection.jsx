@@ -7,16 +7,11 @@ import {
   computeAnnualClearcutAreaPerYear,
   getAnnualYearsWithData,
   getClearcutAccuracy,
-  CLEARCUT_PLANET_YEARS,
+  DEFAULT_CLEARCUT_SENSOR,
 } from '../utils/clearcutAreaStats';
 import { DATA_BASE_URL } from '../config';
 
 const CLEARCUT_YEARS = [2010, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
-
-const SENSORS = [
-  { id: 'hls', label: 'HLS' },
-  { id: 'planet', label: 'Planet' },
-];
 
 // Years that used Landsat 8 OLI only — not spectrally harmonized with HLS.
 // Values are not directly comparable to HLS years (2016+).
@@ -106,8 +101,7 @@ function ClearcutDetection({ data }) {
 
   const regions = useMemo(() => regionsKey.split(','), [regionsKey]);
 
-  const selectedSensor = data?.selectedSensor ?? 'hls';
-  const onSensorChange = data?.onSensorChange;
+  const selectedSensor = data?.selectedSensor ?? DEFAULT_CLEARCUT_SENSOR;
   const selectedYear   = data?.selectedYear;
 
   // Sum GeoJSON areas for all selected regions.
@@ -341,25 +335,6 @@ function ClearcutDetection({ data }) {
 
       <div className="module-section">
         <h3>Display Options</h3>
-        <div className="control-group">
-          <label>Sensor</label>
-          <div className="mode-buttons">
-            {SENSORS.map(({ id, label }) => {
-              const unavailable = id === 'planet' && !CLEARCUT_PLANET_YEARS.includes(selectedYear);
-              return (
-                <button
-                  key={id}
-                  className={`mode-btn${selectedSensor === id ? ' active' : ''}`}
-                  disabled={unavailable}
-                  title={unavailable ? `No ${label} data for ${selectedYear}` : label}
-                  onClick={() => onSensorChange && onSensorChange(id)}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
         <div className="control-group">
           <label htmlFor="opacity-slider">Overlay Opacity</label>
           <input

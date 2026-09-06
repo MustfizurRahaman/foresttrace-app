@@ -10,10 +10,12 @@
  */
 
 
-// Years that have Planet sensor data
-export const CLEARCUT_PLANET_YEARS = [2025];
+// Sensor used when a module/year doesn't specify one. Single source of truth
+// so adding a future sensor means changing this (or wiring a selector back in)
+// rather than hunting down hardcoded 'hls' literals.
+export const DEFAULT_CLEARCUT_SENSOR = 'hls';
 
-// Years whose tiles live under a sensor subfolder (hls/ or planet/)
+// Years whose tiles live under a sensor subfolder (hls/, or a future sensor's)
 export const CLEARCUT_SENSOR_SUBFOLDER_YEARS = [2025];
 
 let _statsPromise = null;
@@ -43,10 +45,10 @@ function loadStats() {
  * @param {string} region
  * @param {number[]} years
  * @param {Function|null} onProgress - optional callback(year, areaHa) per year
- * @param {string} sensor - 'hls' or 'planet'
+ * @param {string} sensor - e.g. 'hls'
  * @returns {Promise<Object>} year → areaHa
  */
-export async function computeClearcutAreaPerYear(region, years, onProgress, sensor = 'hls') {
+export async function computeClearcutAreaPerYear(region, years, onProgress, sensor = DEFAULT_CLEARCUT_SENSOR) {
   const all = await loadStats();
   const cacheKey = `${region}_${sensor}`;
   const byYear = all[cacheKey] ?? {};
@@ -61,7 +63,7 @@ export async function computeClearcutAreaPerYear(region, years, onProgress, sens
 }
 
 /** Returns annual (new-pixel-only) clearcut area in hectares for each year. */
-export async function computeAnnualClearcutAreaPerYear(region, years, sensor = 'hls') {
+export async function computeAnnualClearcutAreaPerYear(region, years, sensor = DEFAULT_CLEARCUT_SENSOR) {
   const all = await loadStats();
   const byYear = all[`${region}_${sensor}_annual`] ?? {};
   const results = {};
@@ -76,7 +78,7 @@ export async function computeAnnualClearcutAreaPerYear(region, years, sensor = '
  * region/sensor combination (i.e. have an entry in the stats JSON).
  * Used to constrain trendlines to years where tiles were actually processed.
  */
-export async function getAnnualYearsWithData(region, sensor = 'hls') {
+export async function getAnnualYearsWithData(region, sensor = DEFAULT_CLEARCUT_SENSOR) {
   const all = await loadStats();
   const byYear = all[`${region}_${sensor}_annual`] ?? {};
   return new Set(Object.keys(byYear).map(Number));
@@ -91,7 +93,7 @@ export async function getAnnualYearsWithData(region, sensor = 'hls') {
  * @param {string} sensor
  * @returns {Promise<Object>} year → { precision, recall, f1, iou } | null
  */
-export async function getClearcutAccuracy(region, sensor = 'hls') {
+export async function getClearcutAccuracy(region, sensor = DEFAULT_CLEARCUT_SENSOR) {
   const all = await loadStats();
   return all[`${region}_${sensor}_accuracy`] ?? {};
 }

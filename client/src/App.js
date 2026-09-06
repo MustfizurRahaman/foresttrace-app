@@ -22,7 +22,7 @@ import WildfireModule from './modules/WildfireModule';
 import CaribouHabitatModule from './modules/CaribouHabitatModule';
 import RasterTileLayer from './components/RasterTileLayer';
 import { handleLocateUser, handlePlaceChanged } from './utils/mapUtils';
-import { CLEARCUT_PLANET_YEARS, CLEARCUT_SENSOR_SUBFOLDER_YEARS } from './utils/clearcutAreaStats';
+import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
 import { TILES_BASE_URL, DATA_BASE_URL } from './config';
@@ -446,7 +446,6 @@ function App() {
   );
   const [selectedYear, setSelectedYear] = useState(MODULES[0]?.temporalOptions?.yearRange?.[1] || 2025);
   const [selectedFMUs, setSelectedFMUs] = useState(['wabigoon']);
-  const [selectedSensor, setSelectedSensor] = useState('planet');
   const [allowHeavyRaster, setAllowHeavyRaster] = useState(false);
   const [basemapMode, setBasemapMode] = useState('light'); // 'light' | 'satellite'
 
@@ -509,19 +508,6 @@ function App() {
       return { ...prev, [moduleId]: [...current, layerId] };
     });
   };
-
-  // Planet tiles only exist for CLEARCUT_PLANET_YEARS, so fall back to HLS when
-  // the clearcut year has no Planet coverage. Scoped to the clearcut module:
-  // without this guard the check reads whichever module is selected, so changing
-  // the wildfire year would flip the sensor and repoint the clearcut layer at an
-  // empty tile folder.
-  useEffect(() => {
-    if (selectedModule?.id !== 'clearcut') return;
-    const moduleYear = moduleYears[selectedModule?.id] ?? selectedYear;
-    if (selectedSensor === 'planet' && !CLEARCUT_PLANET_YEARS.includes(moduleYear)) {
-      setSelectedSensor('hls');
-    }
-  }, [selectedYear, moduleYears, selectedModule, selectedSensor]);
 
   // Safety net: if a layer unmounts mid-load (year change, layer toggle)
   // without firing its `load` event, the spinner would stay forever.
@@ -588,10 +574,6 @@ function App() {
     setModuleYears((prev) => ({ ...prev, wildfire: nearest }));
   }, [wildfireYearOptions, selectedYear, selectedModule]);
 
-  const handleSensorChange = useCallback((sensor) => {
-    setSelectedSensor(sensor);
-  }, []);
-
   useEffect(() => {
     const handleOpacityChange = (e) => {
       setRasterOpacity(e.detail.opacity);
@@ -640,8 +622,6 @@ function App() {
     opacity: rasterOpacity,
     biomassHistogram,
     selectedFMUs,
-    selectedSensor,
-    onSensorChange: handleSensorChange,
     selectedYear,
   };
 
@@ -729,7 +709,7 @@ function App() {
           moduleData={moduleData}
           selectedYear={selectedYear}
           selectedFMUs={selectedFMUs}
-          selectedSensor={selectedSensor}
+          selectedSensor={DEFAULT_CLEARCUT_SENSOR}
         />
 
         <div className="map-center">
@@ -842,17 +822,15 @@ function App() {
                   tileUrl = tileUrl.replace('{region}', region);
 
                   if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(moduleYear)) {
-                    const folder = selectedSensor === 'planet' && CLEARCUT_PLANET_YEARS.includes(moduleYear)
-                      ? 'planet' : 'hls';
                     tileUrl = tileUrl.replace(
                       `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/`,
-                      `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/${folder}/`,
+                      `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/${DEFAULT_CLEARCUT_SENSOR}/`,
                     );
                   }
 
                   return (
                     <RasterTileLayer
-                      key={`${layer.id}-${region}-${moduleYear}-${selectedSensor}`}
+                      key={`${layer.id}-${region}`}
                       onStatsUpdate={
                         layer.id === 'clearcut-accumulated' && region === clearcutStatsRegion
                           ? setClearcutPercent
@@ -863,6 +841,8 @@ function App() {
                       opacity={rasterOpacity}
                       tileUrl={tileUrl}
                       layerId={layer.id}
+                      region={region}
+                      year={moduleYear}
                       tms={layer.tms !== undefined ? layer.tms : true}
                     />
                   );

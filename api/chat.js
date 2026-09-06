@@ -75,7 +75,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const response = await client.chat.completions.create({
-      model: 'llama-3.1-8b-instant',
+      model: 'qwen/qwen3.8-27b',
       messages: groqMessages,
       max_tokens: 1024,
     });
