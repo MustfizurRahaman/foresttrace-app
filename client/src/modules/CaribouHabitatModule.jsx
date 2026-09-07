@@ -24,8 +24,9 @@ const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 
 function CaribouHabitatModule({ data }) {
   const {
     selectedYear, showCaribouRanges, onToggleCaribouRanges,
-    selectedRanges, onToggleRange, caribouRegions,
+    selectedRanges, onToggleRange, onToggleAllRanges, caribouRegions,
   } = data;
+  const allRangesSelected = (selectedRanges?.length ?? 0) === CARIBOU_RANGES.length;
   // What the habitat layer is drawing: the range FMUs while ranges are on,
   // otherwise the FMU selection. Reading it from one place keeps these numbers
   // describing the map rather than something next to it.
@@ -173,45 +174,72 @@ function CaribouHabitatModule({ data }) {
         </p>
       </div>
 
+      {/* Seven ranges plus two controls is a lot of switches to leave open above
+          the charts, so they collapse. <details> rather than custom state: it
+          keeps keyboard and screen-reader behaviour for free. */}
       <div className="module-section">
-        <h3>Population Ranges</h3>
-        <label className="switch" htmlFor="caribou-range-toggle">
-          <input
-            id="caribou-range-toggle"
-            type="checkbox"
-            role="switch"
-            checked={!!showCaribouRanges}
-            onChange={(e) => onToggleCaribouRanges?.(e.target.checked)}
-          />
-          <span className="switch-track" aria-hidden="true" />
-          <span>Show range boundaries</span>
-        </label>
+        <details className="range-dropdown">
+          <summary>
+            <span>Population Ranges</span>
+            <span className="range-summary-count">
+              {allRangesSelected ? 'All' : (selectedRanges?.length || 0) || 'None'}
+            </span>
+          </summary>
 
-        {/* One switch per range. Turning any on drives the habitat layer from
-            the range instead of the FMU selection -- the raster is already
-            clipped to the ranges, so its FMU tiles draw the range and no more. */}
-        <div className="range-switches">
-          {CARIBOU_RANGES.map(({ id, label, color }) => (
-            <label className="switch range-switch" key={id} htmlFor={`caribou-range-${id}`}>
+          <div className="range-panel">
+            <label className="switch range-switch" htmlFor="caribou-range-toggle">
+              <span className="range-name">Show range boundaries</span>
               <input
-                id={`caribou-range-${id}`}
+                id="caribou-range-toggle"
                 type="checkbox"
                 role="switch"
-                checked={selectedRanges?.includes(id) || false}
-                onChange={(e) => onToggleRange?.(id, e.target.checked)}
+                checked={!!showCaribouRanges}
+                onChange={(e) => onToggleCaribouRanges?.(e.target.checked)}
               />
               <span className="switch-track" aria-hidden="true" />
-              <i className="range-swatch" style={{ background: color }} aria-hidden="true" />
-              <span>{label}</span>
             </label>
-          ))}
-        </div>
 
-        <p className="stat-sub" style={{ fontSize: 11, marginTop: 8 }}>
-          {rangeMode
-            ? `Habitat shown range-wide across ${selectedFMUs.length} FMU${selectedFMUs.length === 1 ? '' : 's'}. Stats below follow the range.`
-            : 'No range selected — habitat follows the FMU selection.'}
-        </p>
+            <label className="switch range-switch range-switch-all" htmlFor="caribou-range-all">
+              <span className="range-name">All ranges</span>
+              <input
+                id="caribou-range-all"
+                type="checkbox"
+                role="switch"
+                checked={allRangesSelected}
+                onChange={(e) => onToggleAllRanges?.(e.target.checked)}
+              />
+              <span className="switch-track" aria-hidden="true" />
+            </label>
+
+            {/* One switch per range. Turning any on drives the habitat layer from
+                the range instead of the FMU selection -- the raster is already
+                clipped to the ranges, so its FMU tiles draw the range and no more. */}
+            {CARIBOU_RANGES.map(({ id, label, color, colorDark }) => (
+              <label className="switch range-switch" key={id} htmlFor={`caribou-range-${id}`}>
+                <i
+                  className="range-swatch"
+                  style={{ '--swatch': color, '--swatch-dark': colorDark }}
+                  aria-hidden="true"
+                />
+                <span className="range-name">{label}</span>
+                <input
+                  id={`caribou-range-${id}`}
+                  type="checkbox"
+                  role="switch"
+                  checked={selectedRanges?.includes(id) || false}
+                  onChange={(e) => onToggleRange?.(id, e.target.checked)}
+                />
+                <span className="switch-track" aria-hidden="true" />
+              </label>
+            ))}
+
+            <p className="stat-sub range-mode-note">
+              {rangeMode
+                ? `Habitat shown range-wide across ${selectedFMUs.length} FMU${selectedFMUs.length === 1 ? '' : 's'}. Stats below follow the range.`
+                : 'No range selected — habitat follows the FMU selection.'}
+            </p>
+          </div>
+        </details>
       </div>
 
       <div className="module-section">

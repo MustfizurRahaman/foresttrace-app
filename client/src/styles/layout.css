@@ -1350,22 +1350,77 @@ body.dark-mode .switch-track::after {
   background: #1e1e1e;
 }
 
-/* One row per caribou range. Full-width rows rather than a wrapped inline list,
-   so the swatch, label and switch line up down the column and a range can be
-   found by scanning one edge. */
-.range-switches {
+/* Collapsed by default: seven ranges plus two controls is more than should sit
+   above the charts permanently. */
+.range-dropdown > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* The default disclosure marker is replaced with one that rotates, so the
+   caret sits with the text rather than outside the flex row. */
+.range-dropdown > summary::-webkit-details-marker { display: none; }
+
+.range-dropdown > summary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+}
+
+.range-dropdown[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* Pushes the count to the right edge, away from the label. */
+.range-dropdown > summary > span:first-of-type { margin-right: auto; }
+
+.range-summary-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: #666;
+}
+
+.range-panel {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-top: 8px;
+  margin-top: 6px;
   padding-top: 8px;
   border-top: 1px solid #e0e0e0;
 }
 
+/* Switch to the right edge, swatch and name to the left, so the controls form
+   one scannable column rather than sitting at ragged offsets after labels of
+   different lengths. */
 .range-switch {
   display: flex;
   width: 100%;
-  padding: 3px 0;
+  padding: 4px 0;
+}
+
+.range-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.range-switch-all {
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid #ededed;
+  font-weight: 600;
 }
 
 /* Ties the row to the outline drawn on the map, so the switch and the boundary
@@ -1375,13 +1430,22 @@ body.dark-mode .switch-track::after {
   width: 10px;
   height: 10px;
   border-radius: 2px;
+  background: var(--swatch);
   border: 1px solid rgba(0, 0, 0, 0.25);
 }
 
-body.dark-mode .range-switches {
-  border-top-color: #3a3a3a;
+.range-mode-note {
+  font-size: 11px;
+  margin-top: 8px;
 }
 
+body.dark-mode .range-dropdown > summary { color: #e0e0e0; }
+body.dark-mode .range-summary-count { color: #9a9a9a; }
+body.dark-mode .range-panel { border-top-color: #3a3a3a; }
+body.dark-mode .range-switch-all { border-bottom-color: #333; }
+
+/* The dark step of each hue, validated against the dark panel surface. */
 body.dark-mode .range-swatch {
+  background: var(--swatch-dark);
   border-color: rgba(255, 255, 255, 0.3);
 }

@@ -160,19 +160,38 @@ export async function getSizeBreakdown(regions, year) {
 /**
  * The seven modelled ranges, in the order the panel lists them.
  *
- * Colours must match `color` in public/data/caribou_ranges.geojson, which
- * make_range_geojson.py writes — the map outline and the panel switch read from
- * here so the two cannot drift. `id` is the lowercase key the stats use.
+ * `id` is the lowercase key the stats use. Both colour steps are read from here
+ * — the map outline and the panel swatch, so the two cannot drift. The `color`
+ * property in public/data/caribou_ranges.geojson is deliberately ignored; these
+ * override it, so make_range_geojson.py need not be re-run to restyle.
+ *
+ * No red and no green: on a habitat map those read as bad and good, and a
+ * population range is neither. The remaining hues are ordered for colour-vision
+ * separation rather than appearance — validated as a set, worst adjacent pair
+ * CVD ΔE 16.3 light / 13.2 dark and normal-vision 19.6 / 19.3 (OKLab ×100,
+ * ≥8 and ≥15 the respective gates). Re-running that check is the only safe way
+ * to change one: swapping a hue by eye can quietly collapse a pair.
+ *
+ * `color` is used for the map, where marks sit on the basemap rather than the
+ * app surface; `colorDark` is the step for the dark panel, validated against it.
+ * Magenta and yellow fall under 3:1 on white, so every swatch carries its name
+ * beside it and the map outline carries a tooltip — identity is never colour
+ * alone.
  */
 export const CARIBOU_RANGES = [
-  { id: 'berens', label: 'Berens', color: '#e6194b' },
-  { id: 'brightsand', label: 'Brightsand', color: '#f58231' },
-  { id: 'churchill', label: 'Churchill', color: '#ffe119' },
-  { id: 'kesagami', label: 'Kesagami', color: '#3cb44b' },
-  { id: 'nipigon', label: 'Nipigon', color: '#42d4f4' },
-  { id: 'pagwachuan', label: 'Pagwachuan', color: '#4363d8' },
-  { id: 'sydney', label: 'Sydney', color: '#911eb4' },
+  { id: 'berens', label: 'Berens', color: '#2a78d6', colorDark: '#3987e5' },
+  { id: 'brightsand', label: 'Brightsand', color: '#eb6834', colorDark: '#d95926' },
+  { id: 'churchill', label: 'Churchill', color: '#4a3aa7', colorDark: '#9085e9' },
+  { id: 'kesagami', label: 'Kesagami', color: '#e87ba4', colorDark: '#d55181' },
+  { id: 'nipigon', label: 'Nipigon', color: '#eda100', colorDark: '#c98500' },
+  { id: 'pagwachuan', label: 'Pagwachuan', color: '#00a0b0', colorDark: '#159cad' },
+  { id: 'sydney', label: 'Sydney', color: '#b3541e', colorDark: '#c4621f' },
 ];
+
+/** Map outline colour for a range, by RANGE_NAME or id. */
+export const rangeColor = (name) => CARIBOU_RANGES.find(
+  (r) => r.id === String(name || '').toLowerCase(),
+)?.color;
 
 /**
  * FMUs whose tiles carry any of the given ranges.

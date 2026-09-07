@@ -25,7 +25,7 @@ import { handleLocateUser, handlePlaceChanged } from './utils/mapUtils';
 import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
-import { getFmusForRanges } from './utils/caribouStats';
+import { getFmusForRanges, rangeColor, CARIBOU_RANGES } from './utils/caribouStats';
 import { TILES_BASE_URL, DATA_BASE_URL } from './config';
 
 import './styles/map.css';
@@ -294,7 +294,10 @@ function CaribouRangeBoundaries({ visible, selectedRanges }) {
 
   const onEachFeature = useCallback((feature, layer) => {
     layer.options.pmIgnore = true;
-    const colour = feature.properties?.color || '#333333';
+    // CARIBOU_RANGES wins over the geojson's own `color`, so restyling does not
+    // mean regenerating the file.
+    const colour = rangeColor(feature.properties?.RANGE_NAME)
+      || feature.properties?.color || '#333333';
     layer.setStyle({
       color: colour,
       weight: 2,
@@ -585,6 +588,10 @@ function App() {
     ));
   }, []);
 
+  const handleToggleAllRanges = useCallback((on) => {
+    setSelectedRanges(on ? CARIBOU_RANGES.map((r) => r.id) : []);
+  }, []);
+
   const [moduleYears, setModuleYears] = useState(() => {
     const initial = {};
     MODULES.forEach((module) => {
@@ -731,6 +738,7 @@ function App() {
     onToggleCaribouRanges: setShowCaribouRanges,
     selectedRanges,
     onToggleRange: handleToggleRange,
+    onToggleAllRanges: handleToggleAllRanges,
     // The regions the habitat layer is actually drawing, so the panel's numbers
     // describe what is on the map rather than the FMU selection behind it.
     caribouRegions: caribouRasterRegions,
