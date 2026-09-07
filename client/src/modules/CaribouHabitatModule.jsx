@@ -3,16 +3,9 @@ import {
   BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import {
-  getCoreHabitatPerYear, getSizeBreakdown, getRangeNames, RAMP_STOPS, RAMP_TICKS,
+  getCoreHabitatPerYear, getSizeBreakdown, getRangeNames,
+  RAMP_STOPS, RAMP_TICKS, CARIBOU_RANGES,
 } from '../utils/caribouStats';
-
-// Must match `color` in public/data/caribou_ranges.geojson, which is generated
-// by caribou_tiling/code/make_range_geojson.py. Same seven, same hues.
-const RANGE_COLORS = [
-  ['Berens', '#e6194b'], ['Brightsand', '#f58231'], ['Churchill', '#ffe119'],
-  ['Kesagami', '#3cb44b'], ['Nipigon', '#42d4f4'], ['Pagwachuan', '#4363d8'],
-  ['Sydney', '#911eb4'],
-];
 
 // The outputs_v3 MSPA source covers 2015-2025. Listing the real years here
 // keeps the chart honest rather than padding it with years never assessed.
@@ -29,7 +22,15 @@ const HABITAT_COLOR_ACTIVE = '#21918c';
 const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
 function CaribouHabitatModule({ data }) {
-  const { selectedFMUs, selectedYear, showCaribouRanges, onToggleCaribouRanges } = data;
+  const {
+    selectedYear, showCaribouRanges, onToggleCaribouRanges,
+    selectedRanges, onToggleRange, caribouRegions,
+  } = data;
+  // What the habitat layer is drawing: the range FMUs while ranges are on,
+  // otherwise the FMU selection. Reading it from one place keeps these numbers
+  // describing the map rather than something next to it.
+  const selectedFMUs = caribouRegions?.length ? caribouRegions : data.selectedFMUs;
+  const rangeMode = (selectedRanges?.length ?? 0) > 0;
   const [rows, setRows] = useState([]);
   const [bins, setBins] = useState([]);
   const [ranges, setRanges] = useState([]);
@@ -173,6 +174,7 @@ function CaribouHabitatModule({ data }) {
       </div>
 
       <div className="module-section">
+        <h3>Population Ranges</h3>
         <label className="switch" htmlFor="caribou-range-toggle">
           <input
             id="caribou-range-toggle"
@@ -182,18 +184,34 @@ function CaribouHabitatModule({ data }) {
             onChange={(e) => onToggleCaribouRanges?.(e.target.checked)}
           />
           <span className="switch-track" aria-hidden="true" />
-          <span>Show caribou population range</span>
+          <span>Show range boundaries</span>
         </label>
-        {showCaribouRanges && (
-          <div className="habitat-shares" style={{ marginTop: 8 }}>
-            {RANGE_COLORS.map(([name, colour]) => (
-              <span key={name}>
-                <i style={{ background: colour }} />
-                <em>{name}</em>
-              </span>
-            ))}
-          </div>
-        )}
+
+        {/* One switch per range. Turning any on drives the habitat layer from
+            the range instead of the FMU selection -- the raster is already
+            clipped to the ranges, so its FMU tiles draw the range and no more. */}
+        <div className="range-switches">
+          {CARIBOU_RANGES.map(({ id, label, color }) => (
+            <label className="switch range-switch" key={id} htmlFor={`caribou-range-${id}`}>
+              <input
+                id={`caribou-range-${id}`}
+                type="checkbox"
+                role="switch"
+                checked={selectedRanges?.includes(id) || false}
+                onChange={(e) => onToggleRange?.(id, e.target.checked)}
+              />
+              <span className="switch-track" aria-hidden="true" />
+              <i className="range-swatch" style={{ background: color }} aria-hidden="true" />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+
+        <p className="stat-sub" style={{ fontSize: 11, marginTop: 8 }}>
+          {rangeMode
+            ? `Habitat shown range-wide across ${selectedFMUs.length} FMU${selectedFMUs.length === 1 ? '' : 's'}. Stats below follow the range.`
+            : 'No range selected — habitat follows the FMU selection.'}
+        </p>
       </div>
 
       <div className="module-section">

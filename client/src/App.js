@@ -25,6 +25,7 @@ import { handleLocateUser, handlePlaceChanged } from './utils/mapUtils';
 import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
+import { getFmusForRanges } from './utils/caribouStats';
 import { TILES_BASE_URL, DATA_BASE_URL } from './config';
 
 import './styles/map.css';
@@ -78,6 +79,12 @@ const TILE_ZOOM_RANGE = {
 // re-serve the same overzoomed level-16 tile, so cap zoom there in light mode.
 const LIGHT_BASEMAP_MAX_ZOOM = 16;
 const RASTER_MULTI_FMU_SOFT_LIMIT = 8;
+// Caribou range mode gets a higher ceiling than the general one above. That
+// limit exists to contain the per-tile recolouring in RasterTileLayer, and
+// habitat tiles are pre-coloured -- they return early out of that path
+// entirely. All seven ranges together are 25 FMUs, so this admits every
+// combination rather than silently dropping layers mid-range.
+const RASTER_RANGE_MODE_LIMIT = 25;
 const PREFERRED_RASTER_REGIONS = ['wabigoon', 'troutlake'];
 
 const MODULES = [
@@ -268,7 +275,7 @@ function DrawingTools({ mapRef }) {
 // the file, so the overlay never implies coverage that does not exist. Each
 // feature carries its own colour, so the map and the panel legend read from one
 // source and cannot drift.
-function CaribouRangeBoundaries({ visible }) {
+function CaribouRangeBoundaries({ visible, selectedRanges }) {
   const [data, setData] = useState(null);
 
   useEffect(() => {
@@ -302,8 +309,30 @@ function CaribouRangeBoundaries({ visible }) {
     }
   }, []);
 
-  if (!visible || !data) return null;
-  return <GeoJSON key="caribou-ranges" data={data} onEachFeature={onEachFeature} />;
+  // With ranges selected, outline only those — otherwise the switches say one
+  // range is on while the map still draws all seven.
+  const shown = useMemo(() => {
+    if (!data) return null;
+    if (!selectedRanges || selectedRanges.length === 0) return data;
+    const wanted = new Set(selectedRanges.map((r) => String(r).toLowerCase()));
+    return {
+      ...data,
+      features: (data.features || []).filter(
+        (f) => wanted.has(String(f.properties?.RANGE_NAME || '').toLowerCase()),
+      ),
+    };
+  }, [data, selectedRanges]);
+
+  if (!visible || !shown) return null;
+  // Keyed on the selection so Leaflet rebuilds the layer when it changes;
+  // react-leaflet does not diff GeoJSON data in place.
+  return (
+    <GeoJSON
+      key={`caribou-ranges-${(selectedRanges || []).join('-') || 'all'}`}
+      data={shown}
+      onEachFeature={onEachFeature}
+    />
+  );
 }
 
 function RegionBoundaries({ selectedFMUs, useOntarioOverview, basemapMode }) {
@@ -524,6 +553,38 @@ function App() {
     rasterRegions.length > 0 ? rasterRegions[0] : null
   ), [rasterRegions]);
 
+  // Caribou range mode. Selecting ranges swaps the habitat layer's regions for
+  // the FMUs carrying those ranges, so the layer follows range boundaries
+  // instead of the FMU selection. Deliberately scoped to that one layer: per
+  // issue #15 the range shape must not affect any other module.
+  const [selectedRanges, setSelectedRanges] = useState([]);
+  const [rangeRegions, setRangeRegions] = useState([]);
+
+  useEffect(() => {
+    if (selectedRanges.length === 0) {
+      setRangeRegions([]);
+      return undefined;
+    }
+    let cancelled = false;
+    getFmusForRanges(selectedRanges)
+      .then((fmus) => {
+        if (!cancelled) setRangeRegions(fmus.slice(0, RASTER_RANGE_MODE_LIMIT));
+      })
+      .catch((err) => {
+        console.error('[CaribouRanges]', err);
+        if (!cancelled) setRangeRegions([]);
+      });
+    return () => { cancelled = true; };
+  }, [selectedRanges]);
+
+  const caribouRasterRegions = selectedRanges.length > 0 ? rangeRegions : rasterRegions;
+
+  const handleToggleRange = useCallback((rangeId, on) => {
+    setSelectedRanges((prev) => (
+      on ? [...new Set([...prev, rangeId])] : prev.filter((r) => r !== rangeId)
+    ));
+  }, []);
+
   const [moduleYears, setModuleYears] = useState(() => {
     const initial = {};
     MODULES.forEach((module) => {
@@ -668,6 +729,11 @@ function App() {
     selectedYear,
     showCaribouRanges,
     onToggleCaribouRanges: setShowCaribouRanges,
+    selectedRanges,
+    onToggleRange: handleToggleRange,
+    // The regions the habitat layer is actually drawing, so the panel's numbers
+    // describe what is on the map rather than the FMU selection behind it.
+    caribouRegions: caribouRasterRegions,
   };
 
   const handleModuleSelect = useCallback((module) => {
@@ -858,11 +924,15 @@ function App() {
               return moduleActiveLayers.flatMap((layerId) => {
                 const layer = module.layers?.find((l) => l.id === layerId);
                 if (!layer) return null;
-                if (rasterRegions.length === 0) return null;
+
+                const layerRegions = layer.id === 'caribou-habitat'
+                  ? caribouRasterRegions
+                  : rasterRegions;
+                if (layerRegions.length === 0) return null;
 
                 const moduleYear = moduleYears[module.id] || selectedYear;
 
-                return rasterRegions.map((region) => {
+                return layerRegions.map((region) => {
                   let tileUrl = layer.tileUrl.replace('{year}', moduleYear);
                   tileUrl = tileUrl.replace('{region}', region);
 
@@ -896,7 +966,7 @@ function App() {
             })}
 
             <RegionBoundaries selectedFMUs={selectedFMUs} useOntarioOverview={useOntarioOverview} basemapMode={basemapMode} />
-            <CaribouRangeBoundaries visible={showCaribouRanges} />
+            <CaribouRangeBoundaries visible={showCaribouRanges} selectedRanges={selectedRanges} />
             <DrawingTools mapRef={mapRef} />
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />

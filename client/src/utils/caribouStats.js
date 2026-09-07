@@ -157,6 +157,51 @@ export async function getSizeBreakdown(regions, year) {
   return SIZE_BINS.map((b) => ({ ...b, areaHa: Math.round(totals[b.key] * 10) / 10 }));
 }
 
+/**
+ * The seven modelled ranges, in the order the panel lists them.
+ *
+ * Colours must match `color` in public/data/caribou_ranges.geojson, which
+ * make_range_geojson.py writes — the map outline and the panel switch read from
+ * here so the two cannot drift. `id` is the lowercase key the stats use.
+ */
+export const CARIBOU_RANGES = [
+  { id: 'berens', label: 'Berens', color: '#e6194b' },
+  { id: 'brightsand', label: 'Brightsand', color: '#f58231' },
+  { id: 'churchill', label: 'Churchill', color: '#ffe119' },
+  { id: 'kesagami', label: 'Kesagami', color: '#3cb44b' },
+  { id: 'nipigon', label: 'Nipigon', color: '#42d4f4' },
+  { id: 'pagwachuan', label: 'Pagwachuan', color: '#4363d8' },
+  { id: 'sydney', label: 'Sydney', color: '#911eb4' },
+];
+
+/**
+ * FMUs whose tiles carry any of the given ranges.
+ *
+ * The habitat raster is already clipped to the ranges (NoData outside), so the
+ * union of these FMUs' tiles draws the range and nothing beyond it — no
+ * range-keyed pyramid needed. Ranges share FMUs, so the union of two ranges is
+ * smaller than the sum.
+ *
+ * Membership is read across every year rather than one, so a range does not
+ * lose an FMU on a year where that FMU happens to have no assessed area.
+ *
+ * @param {string[]} ranges - range ids
+ * @returns {Promise<string[]>} FMU ids
+ */
+export async function getFmusForRanges(ranges) {
+  if (!Array.isArray(ranges) || ranges.length === 0) return [];
+
+  const all = await loadCaribouStats();
+  const wanted = new Set(ranges.map((r) => String(r || '').toLowerCase()));
+
+  return Object.entries(all)
+    .filter(([, years]) => Object.values(years).some(
+      (entry) => (entry?.ranges || []).some((r) => wanted.has(String(r).toLowerCase())),
+    ))
+    .map(([fmu]) => fmu)
+    .sort();
+}
+
 /** Which caribou ranges cover the given regions — shown as provenance. */
 export async function getRangeNames(regions, year) {
   if (!Array.isArray(regions) || regions.length === 0) return [];
