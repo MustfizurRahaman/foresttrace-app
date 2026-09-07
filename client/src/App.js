@@ -974,7 +974,13 @@ function App() {
             })}
 
             <RegionBoundaries selectedFMUs={selectedFMUs} useOntarioOverview={useOntarioOverview} basemapMode={basemapMode} />
-            <CaribouRangeBoundaries visible={showCaribouRanges} selectedRanges={selectedRanges} />
+            {/* A selected range always draws its own outline -- selecting one and
+                getting habitat with no boundary reads as a bug. The toggle is
+                then only about the ranges that are NOT selected. */}
+            <CaribouRangeBoundaries
+              visible={showCaribouRanges || selectedRanges.length > 0}
+              selectedRanges={showCaribouRanges ? [] : selectedRanges}
+            />
             <DrawingTools mapRef={mapRef} />
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />

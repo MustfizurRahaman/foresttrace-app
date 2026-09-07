@@ -187,8 +187,12 @@ function CaribouHabitatModule({ data }) {
           </summary>
 
           <div className="range-panel">
+            {/* Outlines every range including unselected ones, without loading
+                their tiles -- a cheap way to see where the ranges are before
+                committing to the habitat for one. A selected range outlines
+                itself regardless of this. */}
             <label className="switch range-switch" htmlFor="caribou-range-toggle">
-              <span className="range-name">Show range boundaries</span>
+              <span className="range-name">Outline all ranges</span>
               <input
                 id="caribou-range-toggle"
                 type="checkbox"
@@ -199,8 +203,10 @@ function CaribouHabitatModule({ data }) {
               <span className="switch-track" aria-hidden="true" />
             </label>
 
+            {/* Unlike the outline toggle above, this loads habitat for all 25
+                FMUs the seven ranges span. */}
             <label className="switch range-switch range-switch-all" htmlFor="caribou-range-all">
-              <span className="range-name">All ranges</span>
+              <span className="range-name">Habitat for all ranges</span>
               <input
                 id="caribou-range-all"
                 type="checkbox"
@@ -235,7 +241,7 @@ function CaribouHabitatModule({ data }) {
 
             <p className="stat-sub range-mode-note">
               {rangeMode
-                ? `Habitat shown range-wide across ${selectedFMUs.length} FMU${selectedFMUs.length === 1 ? '' : 's'}. Stats below follow the range.`
+                ? `Habitat and stats follow the ${selectedRanges.length === 1 ? 'selected range' : `${selectedRanges.length} selected ranges`}, across ${selectedFMUs.length} FMU${selectedFMUs.length === 1 ? '' : 's'}.`
                 : 'No range selected — habitat follows the FMU selection.'}
             </p>
           </div>
