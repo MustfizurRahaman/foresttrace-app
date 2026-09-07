@@ -78,6 +78,19 @@ const TILE_ZOOM_RANGE = {
 // Esri's Light Gray Canvas cache stops at level 16 — deeper requests just
 // re-serve the same overzoomed level-16 tile, so cap zoom there in light mode.
 const LIGHT_BASEMAP_MAX_ZOOM = 16;
+// One pyramid per range-year, built by caribou_tiling/code/caribou_tiler_range.py
+// and served from disk via setupProxy (CARIBOU_RANGE_TILES_DIR) until it is
+// uploaded. Opt-in, because a checkout without those tiles would otherwise ask
+// for a pyramid that is not there.
+//
+// Worth the switch on two counts. One layer per range instead of one per FMU
+// (a range spans 5-7 of them, all seven span 25). And an FMU pyramid holds
+// every range overlapping that FMU -- troutlake carries Berens, Churchill and
+// Sydney -- so selecting one range through FMU tiles also draws the others.
+// A range pyramid holds that range alone.
+const CARIBOU_RANGE_TILES = process.env.REACT_APP_CARIBOU_RANGE_TILES === 'true';
+const CARIBOU_RANGE_TILE_URL = `${TILES_BASE_URL}/tiles/wildlife/caribou-range/{region}_{year}/{z}/{x}/{y}.png`;
+
 const RASTER_MULTI_FMU_SOFT_LIMIT = 8;
 // Caribou range mode gets a higher ceiling than the general one above. That
 // limit exists to contain the per-tile recolouring in RasterTileLayer, and
@@ -933,15 +946,27 @@ function App() {
                 const layer = module.layers?.find((l) => l.id === layerId);
                 if (!layer) return null;
 
-                const layerRegions = layer.id === 'caribou-habitat'
-                  ? caribouRasterRegions
-                  : rasterRegions;
+                // Range mode addresses tiles by range rather than by FMU, so the
+                // region list and the URL template have to change together.
+                const useRangeTiles = layer.id === 'caribou-habitat'
+                  && CARIBOU_RANGE_TILES
+                  && selectedRanges.length > 0;
+
+                let layerRegions;
+                if (useRangeTiles) {
+                  layerRegions = selectedRanges.map((r) => `range_${r}`);
+                } else if (layer.id === 'caribou-habitat') {
+                  layerRegions = caribouRasterRegions;
+                } else {
+                  layerRegions = rasterRegions;
+                }
                 if (layerRegions.length === 0) return null;
 
+                const templateUrl = useRangeTiles ? CARIBOU_RANGE_TILE_URL : layer.tileUrl;
                 const moduleYear = moduleYears[module.id] || selectedYear;
 
                 return layerRegions.map((region) => {
-                  let tileUrl = layer.tileUrl.replace('{year}', moduleYear);
+                  let tileUrl = templateUrl.replace('{year}', moduleYear);
                   tileUrl = tileUrl.replace('{region}', region);
 
                   if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(moduleYear)) {

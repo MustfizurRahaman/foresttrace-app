@@ -16,6 +16,12 @@ const R2_BASE_URL = 'https://pub-8f0dff38416c4731a8b07c734030ec5f.r2.dev';
 const LOCAL_TILE_DIRS = {
   '/tiles/wildfire': process.env.WILDFIRE_TILES_DIR,
   '/tiles/wildlife/caribou': process.env.CARIBOU_TILES_DIR,
+  // Per-range caribou pyramids (range_<range>_<year>), built by
+  // caribou_tiling/code/caribou_tiler_range.py. Not in the bucket yet, so this
+  // is the only route that serves them; unset it and the app falls back to the
+  // per-FMU tiles on R2. Mounted before /tiles/wildlife/caribou would match, so
+  // it has to be its own path segment rather than a prefix of that one.
+  '/tiles/wildlife/caribou-range': process.env.CARIBOU_RANGE_TILES_DIR,
   // The pre-simplification wildfire pyramid, mounted alongside the live one so
   // the 4 px edge simplification can be compared tile-for-tile in the browser
   // without swapping directories on disk. Purely a local verification aid:
