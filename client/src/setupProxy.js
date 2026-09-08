@@ -40,6 +40,12 @@ const R2_TILE_ROUTES = [
   '/tiles/biomass',
   '/tiles/wildfire',
   '/tiles/wildlife/caribou',
+  // Listed even though the per-range pyramids may not be uploaded yet: without
+  // it a machine that has no local copy has nowhere to fall back to, which is
+  // the difference between "works after a clone" and "works only where the
+  // tiles were generated". Express matches mount paths on segment boundaries,
+  // so this and /tiles/wildlife/caribou stay distinct.
+  '/tiles/wildlife/caribou-range',
 ];
 
 module.exports = function (app) {
