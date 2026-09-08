@@ -1,34 +1,34 @@
 {
   "wabigoon_hls": {
-    "2010": 59153.09,
-    "2011": 8608.98,
-    "2012": 2917.57,
-    "2013": 16566.51,
-    "2014": 75.01,
-    "2015": 35116.57,
-    "2016": 60958.75,
-    "2017": 35041.21,
-    "2018": 36487.01,
-    "2019": 34541.04,
-    "2020": 48813.79,
-    "2021": 44017.52,
-    "2022": 44447.54,
-    "2023": 43017.61,
-    "2024": 48523.18,
-    "2025": 0
+    "2010": 59488.9,
+    "2015": 35239.3,
+    "2016": 61236.8,
+    "2017": 46095.6,
+    "2018": 51971.3,
+    "2019": 57344.9,
+    "2020": 61241.2,
+    "2021": 56790.7,
+    "2022": 57885.5,
+    "2023": 57087.7,
+    "2024": 61862.0,
+    "2025": 57633.1
   },
   "wabigoon_planet": {
     "2025": 202543.17
   },
   "wabigoon_hls_annual": {
-    "2017": 7099.7,
-    "2018": 7500.35,
-    "2019": 8637.15,
-    "2020": 12544.22,
-    "2021": 8435.84,
-    "2022": 6889.56,
-    "2023": 5173.15,
-    "2024": 7325.62
+    "2010": 59488.9,
+    "2015": 35239.3,
+    "2016": 61236.8,
+    "2017": 35106.2,
+    "2018": 36317.7,
+    "2019": 34584.0,
+    "2020": 49067.6,
+    "2021": 42760.5,
+    "2022": 44632.4,
+    "2023": 43225.0,
+    "2024": 48800.6,
+    "2025": 35552.3
   },
   "wabigoon_hls_accuracy": {
     "2015": {
@@ -113,5 +113,185 @@
     "2023": 18295.45,
     "2024": 36772.65,
     "2025": 4197.23
+  },
+  "wabigoon_hls_window": {
+    "2010": {
+      "observationYears": 1,
+      "expectedYears": 5,
+      "sourceYears": [
+        2010
+      ],
+      "minDetections": 1,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": false
+    },
+    "2015": {
+      "observationYears": 1,
+      "expectedYears": 5,
+      "sourceYears": [
+        2015
+      ],
+      "minDetections": 1,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": true,
+      "comparable": false
+    },
+    "2016": {
+      "observationYears": 2,
+      "expectedYears": 5,
+      "sourceYears": [
+        2015,
+        2016
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": false
+    },
+    "2017": {
+      "observationYears": 3,
+      "expectedYears": 5,
+      "sourceYears": [
+        2015,
+        2016,
+        2017
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": false
+    },
+    "2018": {
+      "observationYears": 4,
+      "expectedYears": 5,
+      "sourceYears": [
+        2015,
+        2016,
+        2017,
+        2018
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": false
+    },
+    "2019": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2015,
+        2016,
+        2017,
+        2018,
+        2019
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2020": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2021": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2017,
+        2018,
+        2019,
+        2020,
+        2021
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2022": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2023": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2019,
+        2020,
+        2021,
+        2022,
+        2023
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2024": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2020,
+        2021,
+        2022,
+        2023,
+        2024
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    },
+    "2025": {
+      "observationYears": 5,
+      "expectedYears": 5,
+      "sourceYears": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "minDetections": 2,
+      "requiredDetections": 2,
+      "carriesBaseline": false,
+      "isBaseline": false,
+      "comparable": true
+    }
   }
 }

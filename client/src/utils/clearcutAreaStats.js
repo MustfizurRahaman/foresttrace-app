@@ -98,6 +98,27 @@ export async function getClearcutAccuracy(region, sensor = DEFAULT_CLEARCUT_SENS
   return all[`${region}_${sensor}_accuracy`] ?? {};
 }
 
+/**
+ * Per-year window metadata for the accumulated series.
+ *
+ * accumulated(Y) unions a 5-year window, so a year near the start of the record
+ * unions fewer years than a mature one and reads lower for that reason alone.
+ * Without this the rise through the early years looks like accelerating harvest
+ * rather than the window filling up, which is the single easiest way to misread
+ * this chart.
+ *
+ * Shape per year:
+ *   { observationYears, expectedYears, sourceYears, carriesBaseline,
+ *     isBaseline, comparable }
+ *
+ * Returns {} for regions whose stats predate this field, so callers should treat
+ * "no metadata" as "no annotation" rather than as "not comparable".
+ */
+export async function getClearcutWindowMeta(region, sensor = DEFAULT_CLEARCUT_SENSOR) {
+  const all = await loadStats();
+  return all[`${region}_${sensor}_window`] ?? {};
+}
+
 export function clearStatsCache() {
   _statsPromise = null;
 }

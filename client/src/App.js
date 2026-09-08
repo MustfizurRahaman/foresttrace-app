@@ -24,12 +24,19 @@ import { handleLocateUser, handlePlaceChanged } from './utils/mapUtils';
 import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
-import { TILES_BASE_URL, DATA_BASE_URL } from './config';
+import { TILES_BASE_URL, clearcutCogUrl } from './config';
+import useRegionBoundaries from './hooks/useRegionBoundaries';
+import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
 
 import './styles/map.css';
 import './styles/topmenu.css';
 import './styles/menu.css';
 import './styles/layout.css';
+
+// maplibre-gl is ~400 kB gzipped -- as a static import it landed in the main
+// bundle for every visitor even with USE_MAPLIBRE off. Lazy so the cost is paid
+// only when the MapLibre renderer is actually switched on.
+const MapLibreMap = React.lazy(() => import('./components/MapLibreMap'));
 
 // Sentinel-2 cloudless annual composites (EOX IT Services GmbH).
 // Free for non-commercial use; tiles.maps.eox.at serves 2018–2024.
@@ -67,6 +74,18 @@ function isBasemapSynced(year) {
 }
 
 const center = [49.80318325874751, -92.8087780822145];
+
+// Renders the MapLibre map instead of the Leaflet one. Off by default: the
+// MapLibre path is still being brought to parity (stats tallying, biomass
+// histograms and the wildfire layers still run through <RasterTileLayer>), so
+// the Leaflet map stays the shipping one until those land.
+//   REACT_APP_USE_MAPLIBRE=true npm start
+const USE_MAPLIBRE = process.env.REACT_APP_USE_MAPLIBRE === 'true';
+
+// Serve clearcut from COGs rather than PNG pyramids. Independent of the renderer
+// flag so the two can be evaluated separately -- though COGs only render on
+// MapLibre, so this does nothing while USE_MAPLIBRE is off.
+const USE_COG_CLEARCUT = process.env.REACT_APP_USE_COG_CLEARCUT === 'true';
 const TILE_ZOOM_LEVELS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 const TILE_ZOOM_RANGE = {
   min: Math.min(...TILE_ZOOM_LEVELS),
@@ -237,111 +256,7 @@ function DrawingTools({ mapRef }) {
 }
 
 function RegionBoundaries({ selectedFMUs, useOntarioOverview, basemapMode }) {
-  const [regionsData, setRegionsData] = useState(null);
-  const legacyRegionsRef = useRef(null);
-  const perAreaCacheRef = useRef(new Map());
-  const overviewCacheRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadLegacyIfNeeded = async () => {
-      if (legacyRegionsRef.current) return legacyRegionsRef.current;
-      const res = await fetch(`${DATA_BASE_URL}/data/regions-simplified.json`);
-      if (!res.ok) throw new Error(`regions-simplified.json: HTTP ${res.status}`);
-      const data = await res.json();
-      legacyRegionsRef.current = data;
-      return data;
-    };
-
-    const normalizeFeatureCollection = (data) => {
-      if (!data || data.type !== 'FeatureCollection' || !Array.isArray(data.features)) return null;
-      return data;
-    };
-
-    const loadSelectedBoundaries = async () => {
-      if (selectedFMUs.length === 0) {
-        if (!cancelled) setRegionsData(null);
-        return;
-      }
-
-      if (useOntarioOverview) {
-        try {
-          if (!overviewCacheRef.current) {
-            const overviewRes = await fetch(`${DATA_BASE_URL}/data/regions/ontario-overview.json`);
-            if (!overviewRes.ok) {
-              throw new Error(`ontario-overview.json: HTTP ${overviewRes.status}`);
-            }
-            overviewCacheRef.current = normalizeFeatureCollection(await overviewRes.json());
-          }
-
-          if (!cancelled) {
-            setRegionsData(overviewCacheRef.current);
-          }
-          return;
-        } catch (err) {
-          console.warn('Failed to load Ontario overview boundaries; falling back to per-area boundaries.', err);
-        }
-      }
-
-      const mergedFeatures = [];
-
-      for (const fmu of selectedFMUs) {
-        const id = String(fmu || '').toLowerCase();
-        if (!id) continue;
-
-        if (perAreaCacheRef.current.has(id)) {
-          const cached = perAreaCacheRef.current.get(id);
-          if (cached?.features) mergedFeatures.push(...cached.features);
-          continue;
-        }
-
-        let loaded = null;
-
-        // Preferred source: one JSON per FMU at /data/regions/<id>.json
-        try {
-          const areaRes = await fetch(`${DATA_BASE_URL}/data/regions/${id}.json`);
-          if (areaRes.ok) {
-            loaded = normalizeFeatureCollection(await areaRes.json());
-          }
-        } catch {
-          loaded = null;
-        }
-
-        // Backward-compatible fallback: filter from legacy simplified file.
-        if (!loaded) {
-          try {
-            const legacy = await loadLegacyIfNeeded();
-            const features = (legacy.features || []).filter((feature) => {
-              const regionId = feature?.properties?.id?.toLowerCase();
-              return regionId === id;
-            });
-            loaded = { type: 'FeatureCollection', features };
-          } catch (err) {
-            console.error('Failed to load region boundaries:', err);
-            loaded = { type: 'FeatureCollection', features: [] };
-          }
-        }
-
-        perAreaCacheRef.current.set(id, loaded);
-        if (loaded?.features) mergedFeatures.push(...loaded.features);
-      }
-
-      if (!cancelled) {
-        setRegionsData(
-          mergedFeatures.length
-            ? { type: 'FeatureCollection', features: mergedFeatures }
-            : null,
-        );
-      }
-    };
-
-    loadSelectedBoundaries();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedFMUs, useOntarioOverview]);
+  const regionsData = useRegionBoundaries(selectedFMUs, useOntarioOverview);
 
   const onEachFeature = useCallback((feature, layer) => {
     layer.options.pmIgnore = true;
@@ -589,6 +504,61 @@ function App() {
 
   const mapMaxZoom = basemapMode === 'satellite' ? TILE_ZOOM_RANGE.max : LIGHT_BASEMAP_MAX_ZOOM;
 
+  // Boundary GeoJSON for the MapLibre renderer. The Leaflet path fetches this
+  // inside <RegionBoundaries>; both call the same hook, so the two render from
+  // identical data.
+  const maplibreRegions = useRegionBoundaries(selectedFMUs, useOntarioOverview);
+
+  // Flattens the module/layer/region matrix into plain source descriptors.
+  // Mirrors the <RasterTileLayer> mapping in the Leaflet branch below -- kept as
+  // data rather than components because MapLibre sources are declared by value.
+  const maplibreLayers = useMemo(() => {
+    if (!USE_MAPLIBRE) return { rasterLayers: [], cogLayers: [] };
+
+    const rasterLayers = [];
+    const cogLayers = [];
+
+    MODULES.forEach((module) => {
+      (activeLayers[module.id] || []).forEach((layerId) => {
+        const layer = module.layers?.find((l) => l.id === layerId);
+        if (!layer || rasterRegions.length === 0) return;
+
+        const moduleYear = moduleYears[module.id] || selectedYear;
+
+        rasterRegions.forEach((region) => {
+          const cogUrl = USE_COG_CLEARCUT ? clearcutCogUrl(layer.id, region, moduleYear) : null;
+          if (cogUrl) {
+            // color carries the layer's identity, not the class's: accumulated and
+            // annual are both class 2 in the raster, so without it they'd paint the
+            // same and the two layers would be indistinguishable when stacked.
+            cogLayers.push({ id: `${layer.id}-${region}`, url: cogUrl, color: layer.color });
+            return;
+          }
+
+          let tileUrl = layer.tileUrl.replace('{year}', moduleYear).replace('{region}', region);
+
+          if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(moduleYear)) {
+            tileUrl = tileUrl.replace(
+              `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/`,
+              `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/${DEFAULT_CLEARCUT_SENSOR}/`,
+            );
+          }
+
+          rasterLayers.push({
+            id: `${layer.id}-${region}`,
+            // Routed through the tint protocol for the layers whose PNGs are a
+            // flat intensity ramp that <RasterTileLayer> recolors on Leaflet.
+            // Clearcut is excluded: it gets its color from the COG palette.
+            tileUrl: TINTED_LAYER_IDS.has(layer.id) ? tintedTileUrl(layer.id, tileUrl) : tileUrl,
+            tms: layer.tms !== undefined ? layer.tms : true,
+          });
+        });
+      });
+    });
+
+    return { rasterLayers, cogLayers };
+  }, [activeLayers, rasterRegions, moduleYears, selectedYear]);
+
   const moduleData = {
     percentage: clearcutPercent,
     opacity: rasterOpacity,
@@ -737,6 +707,32 @@ function App() {
             Loading...
           </div>
 
+          {USE_MAPLIBRE ? (() => {
+            const basemapYear = moduleYears[selectedModule?.id] || selectedYear;
+            const { url, attribution } = getBasemapConfig(basemapYear);
+            return (
+              <React.Suspense fallback={<div className="loading-indicator">Loading map…</div>}>
+              <MapLibreMap
+                center={center}
+                zoom={TILE_ZOOM_LEVELS[0]}
+                minZoom={TILE_ZOOM_RANGE.min}
+                maxZoom={mapMaxZoom}
+                basemapMode={basemapMode}
+                satelliteUrl={url}
+                satelliteAttribution={attribution}
+                lightBasemap={LIGHT_BASEMAP}
+                regionsData={maplibreRegions}
+                rasterLayers={maplibreLayers.rasterLayers}
+                cogLayers={maplibreLayers.cogLayers}
+                rasterOpacity={rasterOpacity}
+                mapRef={mapRef}
+                onMapReady={() => setMapReady(true)}
+                onShapeCreate={(feature) => console.log('Shape created:', feature)}
+                drawingEnabled
+              />
+              </React.Suspense>
+            );
+          })() : (
           <MapContainer
             center={center}
             zoom={TILE_ZOOM_LEVELS[0]}
@@ -827,6 +823,7 @@ function App() {
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />
           </MapContainer>
+          )}
         </div>
 
         <div className="module-panel-container">

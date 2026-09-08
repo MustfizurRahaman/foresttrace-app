@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ErrorBar,
+  ReferenceArea, Cell,
 } from 'recharts';
 import {
   computeClearcutAreaPerYear,
   computeAnnualClearcutAreaPerYear,
   getAnnualYearsWithData,
   getClearcutAccuracy,
+  getClearcutWindowMeta,
   DEFAULT_CLEARCUT_SENSOR,
 } from '../utils/clearcutAreaStats';
 import { DATA_BASE_URL } from '../config';
@@ -89,6 +91,7 @@ function ClearcutDetection({ data }) {
   const [yearlyStats, setYearlyStats] = useState(null);
   const [annualDataYears, setAnnualDataYears] = useState(new Set());
   const [accuracy, setAccuracy] = useState({});
+  const [windowMeta, setWindowMeta] = useState({});
   const [regionAreaHa, setRegionAreaHa] = useState(null);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
@@ -131,6 +134,7 @@ function ClearcutDetection({ data }) {
           computeAnnualClearcutAreaPerYear(r, CLEARCUT_YEARS, selectedSensor),
           getAnnualYearsWithData(r, selectedSensor),
           getClearcutAccuracy(r, selectedSensor),
+          getClearcutWindowMeta(r, selectedSensor),
         ])
       )
     )
@@ -142,6 +146,27 @@ function ClearcutDetection({ data }) {
           accumulated[y] = results.reduce((sum, [acc]) => sum + (acc[y] ?? 0), 0);
           annual[y]      = results.reduce((sum, [, ann]) => sum + (ann[y] ?? 0), 0);
         });
+
+        // A year is only comparable if it's comparable for EVERY selected
+        // region: summing a mature window in one region with a still-filling
+        // one in another produces a total that is neither.
+        const mergedWindow = {};
+        CLEARCUT_YEARS.forEach(y => {
+          const metas = results.map(([,,,, w]) => w?.[y]).filter(Boolean);
+          if (metas.length === 0) return;
+          mergedWindow[y] = {
+            comparable: metas.every(m => m.comparable),
+            isBaseline: metas.some(m => m.isBaseline),
+            observationYears: Math.min(...metas.map(m => m.observationYears)),
+            expectedYears: Math.max(...metas.map(m => m.expectedYears)),
+            // Worst case across regions: the fewest detections any region got,
+            // against the strictest threshold any region applies -- so the
+            // caption and tooltip describe the weakest evidence in the total.
+            minDetections: Math.min(...metas.map(m => m.minDetections)),
+            requiredDetections: Math.max(...metas.map(m => m.requiredDetections)),
+          };
+        });
+        setWindowMeta(mergedWindow);
 
         // Intersection of annual data years — trend only covers years where
         // ALL selected regions have comparable annual detection data.
@@ -178,6 +203,22 @@ function ClearcutDetection({ data }) {
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [regionsKey, selectedSensor]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Contiguous run of leading years whose accumulated window hasn't filled.
+  // Shaded rather than hidden: they are real measurements, just not readable as
+  // a trend against later years.
+  const fillingSpan = useMemo(() => {
+    const years = CLEARCUT_YEARS.filter(y => windowMeta[y]);
+    if (years.length === 0) return null;
+    const partial = years.filter(y => !windowMeta[y].comparable);
+    if (partial.length === 0) return null;
+    return { from: String(Math.min(...partial)), to: String(Math.max(...partial)) };
+  }, [windowMeta]);
+
+  const baselineYear = useMemo(
+    () => CLEARCUT_YEARS.find(y => windowMeta[y]?.isBaseline) ?? null,
+    [windowMeta],
+  );
 
   // Linear regression over annual clearcut values (non-zero years only).
   const trend = useMemo(() => {
@@ -284,12 +325,39 @@ function ClearcutDetection({ data }) {
                   }
                   return [`${fmt(v)} ha`, 'Historical'];
                 }}
-                labelFormatter={label => `Year ${label}`}
+                labelFormatter={label => {
+                  const m = windowMeta[label];
+                  if (!m) return `Year ${label}`;
+                  if (m.isBaseline) return `Year ${label} — baseline`;
+                  if (!m.comparable) {
+                    const detail = m.minDetections < m.requiredDetections
+                      ? `${m.observationYears}/${m.expectedYears}yr window, ≥${m.minDetections} detections`
+                      : `${m.observationYears}/${m.expectedYears}yr window`;
+                    return `Year ${label} — ${detail}`;
+                  }
+                  return `Year ${label}`;
+                }}
                 labelStyle={{ fontSize: 12 }}
                 itemStyle={{ fontSize: 12 }}
               />
-              <Bar dataKey="historical" stackId="a" fill="#ff4444" name="historical" />
+              {fillingSpan && (
+                <ReferenceArea
+                  x1={fillingSpan.from}
+                  x2={fillingSpan.to}
+                  fill="#94a3b8"
+                  fillOpacity={0.16}
+                  label={{ value: 'window filling', position: 'insideTop', fontSize: 10, fill: '#64748b' }}
+                />
+              )}
+              <Bar dataKey="historical" stackId="a" fill="#ff4444" name="historical">
+                {chartData.map(d => (
+                  <Cell key={d.year} fillOpacity={windowMeta[d.year]?.comparable === false ? 0.45 : 1} />
+                ))}
+              </Bar>
               <Bar dataKey="annual" stackId="a" fill="#FFD700" name="annual" radius={[2, 2, 0, 0]}>
+                {chartData.map(d => (
+                  <Cell key={d.year} fillOpacity={windowMeta[d.year]?.comparable === false ? 0.45 : 1} />
+                ))}
                 <ErrorBar dataKey="annualError" width={3} strokeWidth={1.5} stroke="#a07800" direction="y" />
               </Bar>
               {trend && (
@@ -306,6 +374,17 @@ function ClearcutDetection({ data }) {
               )}
             </ComposedChart>
           </ResponsiveContainer>
+          {fillingSpan && (
+            <p className="chart-note">
+              Accumulated area counts pixels cut this year, plus older ones still detected in
+              at least {windowMeta[Number(fillingSpan.to)]?.requiredDetections ?? 2} years of a{' '}
+              {windowMeta[Number(fillingSpan.to)]?.expectedYears ?? 5}-year window — so regrowth
+              drops out while one-off detections in earlier years don't accumulate. Shaded years
+              ({fillingSpan.from}–{fillingSpan.to}) draw on fewer years than that and read low for
+              that reason alone{baselineYear ? `; ${baselineYear} is the baseline` : ''}. Compare
+              unshaded years, or use the annual series, for trends.
+            </p>
+          )}
         </div>
 
         {trend && (

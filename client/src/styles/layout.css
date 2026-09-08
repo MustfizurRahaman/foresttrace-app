@@ -556,6 +556,17 @@ body.dark-mode .resize-handle--active::after {
   color: #666;
 }
 
+/* Caption for the accumulated chart's "window filling" shading. Matches
+   .biomass-chart-status, but italic so it reads as a qualification of the chart
+   rather than another data label. */
+.chart-note {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #666;
+  font-style: italic;
+}
+
 .biomass-interval-legend {
   margin-top: 8px;
   padding: 8px 10px;
@@ -621,6 +632,10 @@ body.dark-mode .biomass-chart .recharts-cartesian-axis-tick-value {
 }
 
 body.dark-mode .biomass-chart-status {
+  color: #d0d0d0;
+}
+
+body.dark-mode .chart-note {
   color: #d0d0d0;
 }
 
