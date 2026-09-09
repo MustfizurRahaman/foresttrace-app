@@ -282,6 +282,38 @@ set to the R2 bucket in production.
 
 ---
 
+## COG availability manifest
+
+`cogs/manifest.json` on R2 lists which region/year COGs exist, per versioned
+prefix. The app reads it before requesting any COG; without it, selecting all
+39 FMUs issued ~195 HEAD probes at once and left the FMU boundaries queued
+behind lookups for regions that have no COGs at all.
+
+It is **generated, never committed** — it describes the bucket rather than the
+source tree, so a checked-in copy goes stale the moment anyone uploads.
+`client/public/cogs/` is gitignored, and development reads the published
+manifest through the `/cogs` dev proxy.
+
+`upload-cogs.js` re-indexes automatically whenever it uploads to a `cogs/`
+prefix, so the manifest cannot drift from the bucket in normal use. Run it by
+hand after any other change to the bucket:
+
+```bash
+node generate-cog-manifest.js --dry-run   # show what it would publish
+node generate-cog-manifest.js             # rebuild from R2 and publish
+```
+
+A region whose COGs are on the bucket but absent from the manifest is treated as
+having none, and falls back to the PNG pyramid silently — the map still draws,
+so nothing looks broken. That is why the re-index is automatic rather than a
+documented step.
+
+If the manifest is missing entirely the app falls back to HEAD-probing each
+region, which is correct but slow; that path exists so a bucket that has never
+been indexed still works.
+
+---
+
 ## Deployment
 
 The app is deployed on Vercel. Pushes to `main` trigger automatic deploys.

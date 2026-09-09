@@ -26,6 +26,7 @@ require('dotenv').config({ path: path.join(__dirname, '.env.r2') });
 
 const fs = require('fs');
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const { rebuildManifest } = require('./generate-cog-manifest');
 
 const { CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME } = process.env;
 
@@ -115,6 +116,23 @@ async function uploadFile(localPath, key) {
   }
 
   console.log(`\nDone: ${uploaded}/${files.length} files, ${(bytes / 1e6).toFixed(2)} MB`);
+
+  // Re-index automatically. The app treats a COG absent from the manifest as
+  // not existing and falls back to the PNG pyramid, so forgetting this step
+  // fails silently -- the map still draws, just from the wrong source. Doing it
+  // here means the manifest cannot drift from the bucket.
+  if (uploaded > 0 && /^cogs(\/|$)/.test(destPrefix)) {
+    console.log('\nRe-indexing COG manifest…');
+    try {
+      await rebuildManifest({ client, bucket: R2_BUCKET_NAME, quiet: true });
+      console.log('  ok  cogs/manifest.json');
+    } catch (err) {
+      // Never fail the upload over this: the files are already published, and
+      // the fix is one command. Say so loudly instead.
+      console.error(`  FAIL manifest: ${err.name} - ${err.message}`);
+      console.error('  Run `node generate-cog-manifest.js` before the new COGs will be used.');
+    }
+  }
   console.log(
     '\nNOTE: browsers range-read COGs cross-origin, so the bucket needs a CORS policy\n'
     + 'allowing GET + the Range header from your app origin. Without it the map shows\n'

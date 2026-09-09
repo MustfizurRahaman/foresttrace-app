@@ -1,12 +1,10 @@
-import React from 'react';
-
 function ModulePanel({
   module,
   data,
   selectedYear,
-  onYearChange,
+  // yearRange is still read, to know whether the module is time-varying at all.
+  // onYearChange and availableYears moved to <MapTimeline> with the control.
   yearRange = [2015, 2024],
-  availableYears,
   basemapSynced,
 }) {
   if (!module) {
@@ -17,25 +15,11 @@ function ModulePanel({
     );
   }
 
-  // When the module declares specific years (with gaps), drive the slider by
-  // index so positions snap directly to valid years instead of sweeping through
-  // empty years like 2011–2014.
-  const years = availableYears || null;
-  const sliderMin = years ? 0 : yearRange[0];
-  const sliderMax = years ? years.length - 1 : yearRange[1];
-  const sliderValue = years
-    ? Math.max(0, years.indexOf(selectedYear))
-    : selectedYear;
-
-  const handleSliderChange = (e) => {
-    const raw = parseInt(e.target.value, 10);
-    onYearChange(years ? years[raw] : raw);
-  };
-
-  const labelMin = years ? years[0] : yearRange[0];
-  const labelMax = years ? years[years.length - 1] : yearRange[1];
-
-  const showSlider = yearRange && yearRange.length === 2;
+  // The year control itself now lives on the map (<MapTimeline>): it changes
+  // what is drawn, so it belongs with the drawing, and it stays reachable while
+  // this panel is showing a chart or the AI agent. What remains here is the
+  // caveat about the year, which only makes sense beside the module's data.
+  const showYearNote = yearRange && yearRange.length === 2 && basemapSynced === false;
 
   return (
     <div className="module-panel">
@@ -44,30 +28,10 @@ function ModulePanel({
         {module.icon && <span className="module-icon">{module.icon}</span>}
       </div>
       <div className="module-content">
-        {showSlider && (
-          <div className="module-section year-controls">
-            <h3>YEAR</h3>
-            <div className="control-group">
-              <div className="year-display">
-                <span className="year-value">{selectedYear}</span>
-              </div>
-              <input
-                type="range"
-                min={sliderMin}
-                max={sliderMax}
-                value={sliderValue}
-                onChange={handleSliderChange}
-                className="slider year-slider"
-              />
-              <div className="year-range">
-                <span>{labelMin}</span>
-                <span>{labelMax}</span>
-              </div>
-              {basemapSynced === false && (
-                <div className="basemap-warning">
-                  Basemap shows current imagery — detections used {selectedYear} satellite data
-                </div>
-              )}
+        {showYearNote && (
+          <div className="module-section">
+            <div className="basemap-warning">
+              Basemap shows current imagery — detections used {selectedYear} satellite data
             </div>
           </div>
         )}

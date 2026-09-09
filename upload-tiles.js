@@ -72,6 +72,17 @@ async function main() {
       Key: key,
       Body: fs.readFileSync(file),
       ContentType: contentType(file),
+      // Tiles went up with no Cache-Control at all, leaving browsers to guess:
+      // with only ETag and Last-Modified they fall back to heuristic freshness,
+      // which happens to work but is not a decision anyone made and collapses
+      // to zero for a freshly uploaded tile -- exactly when the timeline's
+      // playback is re-requesting the same years over and over.
+      //
+      // A tile's bytes are fixed by its region/year/z/x/y path, so a long
+      // immutable lifetime is simply true. Regenerating a year means new pixels
+      // under the same key, which is what upload-tiles.js is for, so bump the
+      // year's directory or purge if that ever needs to be visible immediately.
+      CacheControl: 'public, max-age=31536000, immutable',
     }));
     done += 1;
     process.stdout.write(`\r${done}/${files.length}`);

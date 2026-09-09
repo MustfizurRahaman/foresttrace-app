@@ -4,7 +4,7 @@ import maplibregl from 'maplibre-gl';
 import { cogProtocol, setColorFunction } from '@geomatico/maplibre-cog-protocol';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildClassColorFunction, DEFAULT_VISIBLE_CLASSES, CLEARCUT_CLASS_ID } from '../utils/clearcutClasses';
-import { ensureTintedProtocol } from '../utils/tintedTileProtocol';
+import { ensureTintedProtocol, onTintActivity } from '../utils/tintedTileProtocol';
 
 // COG support is a URL protocol handler, not a layer type: once registered,
 // any source whose url starts with cog:// is range-read straight from R2 with
@@ -21,6 +21,18 @@ function ensureCogProtocol() {
 // MapLibre ships no default basemap, so the style is built by hand. These are
 // the same XYZ endpoints the Leaflet build used -- MapLibre substitutes {z}/{x}/{y}
 // by name, so the EOX/Esri {z}/{y}/{x} ordering carries over unchanged.
+// Same reasoning as RASTER_PAINT below, but the basemap needs it stated
+// separately because these layers are declared in the style object rather than
+// as <Layer> children, and a layer with no paint block silently takes
+// MapLibre's 300ms fade default.
+//
+// The fade binds the *parent* tile's texture while a tile loads, and an evicted
+// parent has none -- MapLibre then throws "Cannot read properties of undefined
+// (reading 'bind')" out of its render loop. Retuning the basemap with setTiles
+// on a year change is precisely the situation that exposes it: every tile
+// reloads at once with parents already released.
+const BASEMAP_PAINT = { 'raster-fade-duration': 0 };
+
 const EMPTY_STYLE = {
   version: 8,
   // MapLibre refuses to render text/symbol layers without a glyph source. None
@@ -51,7 +63,7 @@ function buildBasemapStyle({ basemapMode, satelliteUrl, satelliteAttribution, li
           attribution: satelliteAttribution,
         },
       },
-      layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+      layers: [{ id: 'basemap', type: 'raster', source: 'basemap', paint: BASEMAP_PAINT }],
     };
   }
 
@@ -71,9 +83,9 @@ function buildBasemapStyle({ basemapMode, satelliteUrl, satelliteAttribution, li
       },
     },
     layers: [
-      { id: 'basemap', type: 'raster', source: 'basemap' },
+      { id: 'basemap', type: 'raster', source: 'basemap', paint: BASEMAP_PAINT },
       // Labels/roads ride above the base but below overlays.
-      { id: 'basemap-reference', type: 'raster', source: 'basemap-reference' },
+      { id: 'basemap-reference', type: 'raster', source: 'basemap-reference', paint: BASEMAP_PAINT },
     ],
   };
 }
@@ -351,6 +363,141 @@ const RASTER_PAINT = (opacity) => ({
 });
 
 /**
+ * Retunes the satellite basemap in place when the year changes.
+ *
+ * The satellite URL is per-year (EOX publishes one s2cloudless layer per
+ * season), so it used to flow into the style object -- and a changed style makes
+ * react-map-gl call map.setStyle(), which tears down and rebuilds *every* source
+ * and layer. That is why changing the year re-fetched the FMU boundaries, reset
+ * the tile-loading indicator mid-load, and dropped whatever terra-draw had
+ * registered.
+ *
+ * setTiles swaps just the basemap's URLs, leaving everything above it alone.
+ */
+function BasemapUrlSync({ url, enabled }) {
+  const { current: mapRef } = useMap();
+
+  useEffect(() => {
+    const map = mapRef?.getMap?.();
+    if (!map || !enabled || !url) return undefined;
+
+    const apply = () => {
+      const source = map.getSource('basemap');
+      // setTiles exists on raster sources only, and the source is absent for a
+      // beat after a genuine style change (basemap mode toggle).
+      if (source?.setTiles) source.setTiles([url]);
+    };
+
+    // Deferred to an idle frame. setTiles reloads the source, and doing that
+    // while tiles are mid-draw is what leaves a renderable tile whose texture
+    // has already been pooled -- the crash the overlay sources avoid by being
+    // replaced rather than retuned. The basemap cannot use that trick: it is
+    // declared inside the style object, so a new id would mean a new style and
+    // the full teardown this was written to avoid.
+    const run = () => {
+      if (map.isStyleLoaded()) apply();
+      else map.once('styledata', apply);
+    };
+
+    if (map.loaded()) run();
+    else map.once('idle', run);
+    return () => {
+      map.off('idle', run);
+      map.off('styledata', apply);
+    };
+  }, [mapRef, url, enabled]);
+
+  return null;
+}
+
+/**
+ * Reports tile activity the way <RasterTileLayer> does on the Leaflet path.
+ *
+ * Bound to the map directly rather than through react-map-gl props, because it
+ * exposes onIdle but has no prop for 'dataloading' -- an onDataLoading prop is
+ * silently ignored, which leaves the spinner permanently hidden rather than
+ * obviously broken.
+ *
+ * 'dataloading' and 'idle' bracket a load for every source, so this covers COGs
+ * and PNG tiles alike -- including the tinted wildfire and biomass layers, whose
+ * fetch-plus-worker round trip keeps the map non-idle until the tint completes.
+ * The parent debounces the hide, so 'dataloading' firing per request is fine.
+ */
+function LoadingReporter({ onLoadingChange, sourceIds }) {
+  const { current: mapRef } = useMap();
+
+  useEffect(() => {
+    const map = mapRef?.getMap?.();
+    if (!map || !onLoadingChange) return undefined;
+
+    // Asked of the map rather than inferred from events.
+    //
+    // Event-based tracking worked for the COG layers and silently missed the
+    // PNG ones: a `url: cog://` source fetches TileJSON through the protocol
+    // and so raises sourcedataloading, while a source declared with an inline
+    // `tiles:` array has no metadata step and never raises it at all. That is
+    // why clearcut reported progress and wildfire did not. isSourceLoaded
+    // answers the real question -- "are this source's tiles for the current view
+    // all in?" -- the same way for both.
+    //
+    // The ids come from props, NOT from map.getStyle(): getStyle serialises the
+    // whole style on every call, and calling it per tile event was enough to
+    // make panning visibly stutter.
+    let last = '';
+    let timer = null;
+    // Layer ids the tint protocol says are fetching. MapLibre does not report
+    // those sources as busy, so they are merged in from the authority that
+    // actually knows -- without this, the PNG-backed layers (wildfire, biomass)
+    // load in silence.
+    let tinting = [];
+
+    const recompute = () => {
+      timer = null;
+      const ids = sourceIds.filter((id) => {
+        if (tinting.some((layerId) => id.startsWith(`raster-${layerId}-`))) return true;
+        try {
+          return !map.isSourceLoaded(id);
+        } catch {
+          // Thrown for a source the style hasn't added yet -- pending, so it
+          // counts as loading.
+          return true;
+        }
+      });
+      const key = ids.join('|');
+      if (key === last) return;
+      last = key;
+      onLoadingChange(ids.length > 0, ids);
+    };
+
+    // Coalesced: these events fire per tile, and both the check and the state
+    // push are wasted if another tile lands a millisecond later.
+    const schedule = () => {
+      if (timer === null) timer = setTimeout(recompute, 120);
+    };
+
+    const unsubscribeTint = onTintActivity((active) => {
+      tinting = active;
+      schedule();
+    });
+
+    map.on('sourcedata', schedule);
+    map.on('dataloading', schedule);
+    map.on('idle', schedule);
+    map.on('moveend', schedule);
+    return () => {
+      if (timer !== null) clearTimeout(timer);
+      unsubscribeTint();
+      map.off('sourcedata', schedule);
+      map.off('dataloading', schedule);
+      map.off('idle', schedule);
+      map.off('moveend', schedule);
+    };
+  }, [mapRef, onLoadingChange, sourceIds]);
+
+  return null;
+}
+
+/**
  * MapLibre replacement for the Leaflet <MapContainer> stack.
  *
  * Renders raster overlays two ways during the migration: `rasterLayers` keeps the
@@ -374,6 +521,7 @@ function MapLibreMap({
   onShapeCreate = null,
   onDrawChange = null,
   onAskAboutDrawing = null,
+  onLoadingChange = null,
   proposedFeatures = null,
   drawingEnabled = false,
   onMapReady = null,
@@ -382,9 +530,21 @@ function MapLibreMap({
   ensureCogProtocol();
   ensureTintedProtocol();
 
+  // Held in a ref so a year change does not rebuild the style. The style is
+  // rebuilt only when the basemap MODE changes, which is a real style change;
+  // the per-year URL is applied by <BasemapUrlSync> below instead.
+  const satelliteRef = useRef({ url: satelliteUrl, attribution: satelliteAttribution });
+  satelliteRef.current = { url: satelliteUrl, attribution: satelliteAttribution };
+
   const mapStyle = useMemo(
-    () => buildBasemapStyle({ basemapMode, satelliteUrl, satelliteAttribution, lightBasemap }),
-    [basemapMode, satelliteUrl, satelliteAttribution, lightBasemap],
+    () => buildBasemapStyle({
+      basemapMode,
+      satelliteUrl: satelliteRef.current.url,
+      satelliteAttribution: satelliteRef.current.attribution,
+      lightBasemap,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [basemapMode, lightBasemap],
   );
 
   // Class colors are applied by a per-pixel function keyed on the COG's URL, so
@@ -413,6 +573,18 @@ function MapLibreMap({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cogSignature]);
 
+  // The overlay source ids, straight from the layer descriptors. Joined into
+  // the dependency key so the reporter re-binds when layers change but not on
+  // every render.
+  const overlaySourceIds = useMemo(
+    () => [
+      ...rasterLayers.map((l) => `raster-${l.id}`),
+      ...cogLayers.map((l) => `cog-${l.id}`),
+    ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rasterLayers.map((l) => l.id).join('|'), cogLayers.map((l) => l.id).join('|')],
+  );
+
   const handleLoad = useCallback((e) => {
     if (mapRef) mapRef.current = e.target;
     // Dev-only handle. Two rendering faults in a row have come down to "is the
@@ -433,6 +605,9 @@ function MapLibreMap({
       attributionControl={{ compact: true }}
     >
       <NavigationControl position="bottom-left" showCompass={false} />
+
+      <LoadingReporter onLoadingChange={onLoadingChange} sourceIds={overlaySourceIds} />
+      <BasemapUrlSync url={satelliteUrl} enabled={basemapMode === 'satellite'} />
 
       {regionsData && (
         <Source id="regions" type="geojson" data={regionsData}>

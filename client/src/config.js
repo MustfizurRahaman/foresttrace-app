@@ -41,6 +41,10 @@ const COG_PREFIX_BY_LAYER = {
   'clearcut-accumulated': 'clearcut-accumulated-v4',
 };
 
+// The prefix coverage is judged against. Accumulated and annual are generated
+// together, so one answers for both.
+export const COG_PREFIX_FOR_COVERAGE = COG_PREFIX_BY_LAYER['clearcut-accumulated'];
+
 /**
  * Per-year clearcut COG URL for a given layer.
  *

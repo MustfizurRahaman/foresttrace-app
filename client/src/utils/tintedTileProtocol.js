@@ -44,29 +44,140 @@ function parseTintedUrl(url) {
   };
 }
 
+// Tinted results, keyed by the full tinted:// URL -- which already encodes
+// layer, region, year and z/x/y, so it identifies the pixels exactly.
+//
+// Worth caching because a tinted tile is expensive in a way a plain PNG is not:
+// fetch, decode, canvas draw, getImageData, a worker round trip, then
+// createImageBitmap. And it is all redone on every year change, because the
+// overlay sources are year-scoped (they have to be -- see the setTiles crash),
+// so MapLibre drops its own tile cache each frame. Timeline playback therefore
+// re-tinted every visible tile of every step, every pass.
+//
+// ImageData rather than ImageBitmap: MapLibre takes ownership of the bitmap it
+// is handed, so a cached one cannot be served twice. Rebuilding a bitmap from
+// cached pixels skips the network and the worker, which are the costly parts.
+const MAX_CACHED_TILES = 160;   // ~42 MB at 256x256 RGBA
+const tintCache = new Map();
+
+function cacheGet(key) {
+  const hit = tintCache.get(key);
+  if (!hit) return null;
+  // Re-insert to mark as recently used: Map preserves insertion order, so the
+  // oldest key is simply the first.
+  tintCache.delete(key);
+  tintCache.set(key, hit);
+  return hit;
+}
+
+function cacheSet(key, imageData) {
+  tintCache.set(key, imageData);
+  while (tintCache.size > MAX_CACHED_TILES) {
+    tintCache.delete(tintCache.keys().next().value);
+  }
+}
+
+/** Frees the cache -- for a hard refresh of regenerated tiles. */
+export function clearTintCache() {
+  tintCache.clear();
+}
+
+// Requests already running, so two sources asking for the same tile at once
+// share one fetch and one tint rather than racing.
+const inFlightByUrl = new Map();
+
+// In-flight tint requests, per layer.
+//
+// MapLibre's own isSourceLoaded() is the natural place to ask whether a source
+// is busy, and it does not report these as busy -- which is why the wildfire
+// and biomass loads showed no indicator while the COG-backed clearcut layer
+// did. This protocol is the authority for its own layers: it knows when a fetch
+// starts and when the worker hands the tinted bitmap back, which is the real
+// span of the work.
+const inFlight = new Map();
+const listeners = new Set();
+
+function notify() {
+  const active = [...inFlight.entries()].filter(([, n]) => n > 0).map(([id]) => id);
+  listeners.forEach((fn) => fn(active));
+}
+
+function beginTint(layerId) {
+  inFlight.set(layerId, (inFlight.get(layerId) || 0) + 1);
+  notify();
+}
+
+function endTint(layerId) {
+  const next = (inFlight.get(layerId) || 1) - 1;
+  if (next <= 0) inFlight.delete(layerId);
+  else inFlight.set(layerId, next);
+  notify();
+}
+
+/**
+ * Subscribe to tint activity. The callback receives the layer ids currently
+ * fetching; an empty array means idle.
+ *
+ * @returns {Function} unsubscribe
+ */
+export function onTintActivity(fn) {
+  listeners.add(fn);
+  fn([...inFlight.keys()]);
+  return () => listeners.delete(fn);
+}
+
 async function loadTinted(url, signal) {
+  const cached = cacheGet(url);
+  if (cached) {
+    // No fetch, no worker: just re-wrap the pixels we already computed.
+    return { data: await createImageBitmap(cached) };
+  }
+
+  const running = inFlightByUrl.get(url);
+  if (running) return { data: await createImageBitmap(await running) };
+
+  const work = tintTile(url, signal);
+  inFlightByUrl.set(url, work);
+  try {
+    const imageData = await work;
+    return { data: await createImageBitmap(imageData) };
+  } finally {
+    inFlightByUrl.delete(url);
+  }
+}
+
+/** Fetches and tints one tile, returning the tinted ImageData. */
+async function tintTile(url, signal) {
   const { layerId, coords, tileUrl } = parseTintedUrl(url);
 
-  // Fetched rather than loaded as an <img>, because the pixels have to be
-  // readable -- which means the tile host needs CORS, same as the COGs do.
-  const res = await fetch(tileUrl, { signal });
-  if (!res.ok) throw new Error(`${tileUrl}: HTTP ${res.status}`);
+  beginTint(layerId);
+  try {
+    // Fetched rather than loaded as an <img>, because the pixels have to be
+    // readable -- which means the tile host needs CORS, same as the COGs do.
+    const res = await fetch(tileUrl, { signal });
+    if (!res.ok) throw new Error(`${tileUrl}: HTTP ${res.status}`);
 
-  const bitmap = await createImageBitmap(await res.blob());
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();
+    const bitmap = await createImageBitmap(await res.blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close();
 
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-  // The worker also tallies stats, but nothing consumes them here -- the stats
-  // path still runs through <RasterTileLayer> on the Leaflet map. Note the
-  // biomass area tally would be wrong anyway: it derives latitude from y, and a
-  // TMS source hands us a flipped y.
-  const { imageData: tinted } = await processTile(layerId, imageData, coords);
+    // The worker also tallies stats, but nothing consumes them here -- the stats
+    // path still runs through <RasterTileLayer> on the Leaflet map. Note the
+    // biomass area tally would be wrong anyway: it derives latitude from y, and a
+    // TMS source hands us a flipped y.
+    const { imageData: tinted } = await processTile(layerId, imageData, coords);
 
-  return { data: await createImageBitmap(tinted) };
+    cacheSet(url, tinted);
+    return tinted;
+  } finally {
+    // finally, not after the return: an aborted or 404'd tile must decrement
+    // too, or the indicator sticks on forever after a sparse area is panned to.
+    endTint(layerId);
+  }
 }
 
 let registered = false;

@@ -1,4 +1,4 @@
-import { clearcutCogUrl } from '../config';
+import { clearcutCogUrl, COG_BASE_URL, COG_PREFIX_FOR_COVERAGE as COG_PREFIX } from '../config';
 
 /**
  * Which region/year pairs actually have a clearcut COG.
@@ -19,6 +19,58 @@ import { clearcutCogUrl } from '../config';
  * already need. A probe that fails for any reason counts as "absent", which
  * matches what the user sees: no raster on the map.
  */
+
+// One request that answers for every region and year at once.
+//
+// Probing was fine while a handful of regions were selected and pathological at
+// 39: 39 regions x 5 module years is ~195 HEAD requests issued together, against
+// a browser limit of roughly 6 per origin. Everything else queued behind them --
+// which is why selecting all FMUs left the boundaries waiting on COG lookups for
+// regions that have no COGs at all.
+//
+// Falls back to probing when the manifest is absent, so a bucket that hasn't
+// been re-indexed still works.
+let _manifestPromise = null;
+
+function loadManifest() {
+  if (!_manifestPromise) {
+    _manifestPromise = fetch(`${COG_BASE_URL}/cogs/manifest.json`)
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null);
+  }
+  return _manifestPromise;
+}
+
+/**
+ * `${region}_${year}` keys that have a PNG tile pyramid for a layer, or null
+ * when the manifest is unavailable (callers then request as before).
+ *
+ * Stats are not a substitute for this: troutlake has clearcut statistics for
+ * 2017-2025 but tiles for only 2020 and 2024, so gating on "the region has
+ * data" still produced a full request tree for every missing year.
+ */
+export async function getTileCoverage(tileLayer) {
+  const manifest = await loadManifest();
+  const byRegion = manifest?.tiles?.[tileLayer];
+  if (!byRegion) return null;
+  const covered = new Set();
+  for (const [region, years] of Object.entries(byRegion)) {
+    for (const year of years) covered.add(`${region}_${year}`);
+  }
+  return covered;
+}
+
+/** `${region}_${year}` keys the manifest says exist, or null if there is none. */
+async function coverageFromManifest() {
+  const manifest = await loadManifest();
+  const byRegion = manifest?.prefixes?.[COG_PREFIX];
+  if (!byRegion) return null;
+  const covered = new Set();
+  for (const [region, years] of Object.entries(byRegion)) {
+    for (const year of years) covered.add(`${region}_${year}`);
+  }
+  return covered;
+}
 
 // `${region}_${year}` -> Promise<boolean>
 const cache = new Map();
@@ -46,6 +98,9 @@ function probe(region, year) {
  * @returns {Promise<Set<string>>} `${region}_${year}` keys that have a COG
  */
 export async function getCogCoverage(wanted) {
+  const fromManifest = await coverageFromManifest();
+  if (fromManifest) return fromManifest;
+
   const pairs = wanted.flatMap(({ region, years }) => years.map((year) => ({ region, year })));
   const present = await Promise.all(pairs.map(({ region, year }) => probe(region, year)));
   return new Set(pairs.filter((_, i) => present[i]).map(({ region, year }) => `${region}_${year}`));
@@ -53,4 +108,5 @@ export async function getCogCoverage(wanted) {
 
 export function clearCogCoverageCache() {
   cache.clear();
+  _manifestPromise = null;
 }

@@ -17,19 +17,20 @@ import NewsPage from './pages/NewsPage';
 import PublicationPage from './pages/PublicationPage';
 import DocumentationPage from './pages/DocumentationPage';
 import MapSourcesInfo from './components/MapSourcesInfo';
+import MapTimeline from './components/MapTimeline';
 import ClearcutDetection from './modules/ClearcutDetection';
 import BiomassModule from './modules/BiomassModule';
 import WildfireModule from './modules/WildfireModule';
 import RasterTileLayer from './components/RasterTileLayer';
-import { handleLocateUser, handlePlaceChanged } from './utils/mapUtils';
-import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR } from './utils/clearcutAreaStats';
+import { handleLocateUser } from './utils/mapUtils';
+import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR, getRegionsWithClearcutData } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
 import { TILES_BASE_URL, clearcutCogUrl } from './config';
 import useRegionBoundaries from './hooks/useRegionBoundaries';
 import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
 import { summarizeDrawing } from './utils/drawnShapeContext';
-import { getCogCoverage } from './utils/clearcutCogCoverage';
+import { getCogCoverage, getTileCoverage } from './utils/clearcutCogCoverage';
 
 import './styles/map.css';
 import './styles/topmenu.css';
@@ -74,6 +75,13 @@ function isBasemapSynced(year) {
   // that a warning would be misleading.
   if (year >= 2025) return true;
   return false;
+}
+
+// The directory a layer's tiles live under: /tiles/<dir>/{region}_{year}/...
+// Read from the URL template rather than hardcoded, so a new layer needs no
+// second registration to be covered by the availability manifest.
+function tileDirOf(tileUrl) {
+  return tileUrl?.match(/\/tiles\/([^/]+)\//)?.[1] ?? null;
 }
 
 const center = [49.80318325874751, -92.8087780822145];
@@ -342,18 +350,43 @@ function App() {
   const [showApp, setShowApp] = useState(false);
   const [activePage, setActivePage] = useState(null);
   const mapRef = useRef(null);
-  const searchRef = useRef(null);
-  const autocompleteRef = useRef(null);
   const [mapReady, setMapReady] = useState(false);
   const [clearcutPercent, setClearcutPercent] = useState(null);
   const [tilesLoading, setTilesLoading] = useState(false);
   const hidingTimerRef = useRef(null);
-  const handleLoadingChange = useCallback((loading) => {
+  const showingTimerRef = useRef(null);
+  // Shown only if the load is still running after a beat. Most tile loads finish
+  // faster than that, and an indicator that flashes on every pan reads as the
+  // map fighting you rather than as information.
+  const LOADING_SHOW_DELAY_MS = 500;
+  // Held briefly once shown. Tiles arrive in batches with brief lulls between
+  // them, and a source reads as loaded during a lull -- so a short hide delay
+  // made the indicator strobe through a long load and, worse, re-armed the
+  // 500 ms show delay each time, hiding it for most of the load it was meant to
+  // report. Longer than the gaps, short enough not to linger once done.
+  const LOADING_HIDE_DELAY_MS = 900;
+  // Which map sources are still fetching, so the status line can name them.
+  // Leaflet's <RasterTileLayer> passes no ids and simply leaves this empty.
+  const [loadingSourceIds, setLoadingSourceIds] = useState([]);
+  // The undebounced signal. tilesLoading is delayed on both edges so the
+  // indicator doesn't strobe, which is right for a human watching it and wrong
+  // for playback pacing -- the delays would add well over a second to every
+  // frame. Playback reads this instead.
+  const [tilesBusy, setTilesBusy] = useState(false);
+  const handleLoadingChange = useCallback((loading, sourceIds = []) => {
+    setTilesBusy(loading);
+    // Only update the label when there is something to name. Clearing it during
+    // a lull would flip the status line to the generic wording and back.
+    if (sourceIds.length > 0) setLoadingSourceIds(sourceIds);
     if (loading) {
       clearTimeout(hidingTimerRef.current);
-      setTilesLoading(true);
+      if (!showingTimerRef.current) {
+        showingTimerRef.current = setTimeout(() => setTilesLoading(true), LOADING_SHOW_DELAY_MS);
+      }
     } else {
-      hidingTimerRef.current = setTimeout(() => setTilesLoading(false), 300);
+      clearTimeout(showingTimerRef.current);
+      showingTimerRef.current = null;
+      hidingTimerRef.current = setTimeout(() => setTilesLoading(false), LOADING_HIDE_DELAY_MS);
     }
   }, []);
   const [biomassHistogram, setBiomassHistogram] = useState(createEmptyBiomassHistogram());
@@ -477,6 +510,34 @@ function App() {
     ? wildfireYearOptions
     : selectedModule?.temporalOptions?.availableYears;
 
+  // Stops on the timeline: the union of every year any ACTIVE layer can show,
+  // not just the selected module's. The control moves all of them, so it has to
+  // offer every year one of them has -- otherwise switching modules would
+  // silently change which years are reachable.
+  const timelineYears = useMemo(() => {
+    const expand = (module) => {
+      if (module.id === 'wildfire') return wildfireYearOptions || [];
+      const declared = module.temporalOptions?.availableYears;
+      if (declared?.length) return declared;
+      const range = module.temporalOptions?.yearRange;
+      if (!range || range.length !== 2) return [];
+      const [from, to] = range;
+      return Array.from({ length: to - from + 1 }, (_, i) => from + i);
+    };
+
+    const years = new Set();
+    MODULES.forEach((module) => {
+      if (!(activeLayers[module.id] || []).length) return;
+      expand(module).forEach((y) => years.add(y));
+    });
+
+    // Nothing switched on: fall back to the module in front, so the timeline
+    // doesn't vanish while the user is deciding what to display.
+    if (years.size === 0 && selectedModule) expand(selectedModule).forEach((y) => years.add(y));
+
+    return [...years].sort((a, b) => a - b);
+  }, [activeLayers, wildfireYearOptions, selectedModule]);
+
   // Changing FMU can drop the year currently being viewed out of the list.
   // Snap to the nearest available year, otherwise the slider handle and the
   // year label disagree.
@@ -502,37 +563,6 @@ function App() {
     return () => window.removeEventListener('opacityChange', handleOpacityChange);
   }, []);
 
-  useEffect(() => {
-    const initAutocomplete = () => {
-      if (!searchRef.current || !window.google?.maps?.places) return;
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(searchRef.current);
-      autocompleteRef.current.addListener('place_changed', () => {
-        handlePlaceChanged(autocompleteRef, mapRef);
-      });
-    };
-
-    if (window.google?.maps?.places) {
-      initAutocomplete();
-      return;
-    }
-
-    const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
-    if (!apiKey) {
-      console.warn('Missing REACT_APP_GOOGLE_MAPS_API_KEY. Google Places search will be disabled.');
-      return;
-    }
-
-    const scriptId = 'google-maps-places-script';
-    if (document.getElementById(scriptId)) return;
-
-    const script = document.createElement('script');
-    script.id = scriptId;
-    script.async = true;
-    script.defer = true;
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.onload = initAutocomplete;
-    document.head.appendChild(script);
-  }, []);
 
   const mapMaxZoom = basemapMode === 'satellite' ? TILE_ZOOM_RANGE.max : LIGHT_BASEMAP_MAX_ZOOM;
 
@@ -574,6 +604,37 @@ function App() {
   // an AggregateError out of MapLibre's tile loader -- and drew nothing, rather
   // than falling back to the PNG pyramid that does exist for every region.
   const [cogCoverage, setCogCoverage] = useState(null);
+  // Regions that have a clearcut product of any kind. null until known, and
+  // treated the same way as unknown COG coverage: request nothing yet.
+  const [clearcutRegions, setClearcutRegions] = useState(null);
+
+  // Which PNG tile sets exist, keyed by the directory under /tiles/. Loaded for
+  // every layer up front: it is one manifest fetch shared by all of them.
+  const [tileCoverage, setTileCoverage] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    const dirs = [...new Set(
+      MODULES.flatMap((m) => (m.layers || []).map((l) => tileDirOf(l.tileUrl)).filter(Boolean)),
+    )];
+    Promise.all(dirs.map((dir) => getTileCoverage(dir).then((covered) => [dir, covered])))
+      .then((entries) => {
+        if (cancelled) return;
+        setTileCoverage(Object.fromEntries(entries.filter(([, covered]) => covered)));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getRegionsWithClearcutData(DEFAULT_CLEARCUT_SENSOR)
+      .then((regions) => { if (!cancelled) setClearcutRegions(regions); })
+      // A failed stats fetch shouldn't blank the map -- fall back to asking for
+      // everything, which is the old behaviour.
+      .catch(() => { if (!cancelled) setClearcutRegions(null); });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!USE_MAPLIBRE || !USE_COG_CLEARCUT || rasterRegions.length === 0) {
@@ -581,11 +642,47 @@ function App() {
       return undefined;
     }
     let cancelled = false;
-    const years = [...new Set(MODULES.map((m) => moduleYears[m.id] || selectedYear))];
+    // Only the clearcut module has a COG product, so probing every module's year
+    // multiplied the request count for nothing. (Moot when the manifest is
+    // published -- this is the fallback path.)
+    const years = [...new Set([moduleYears.clearcut || selectedYear])];
     getCogCoverage(rasterRegions.map((region) => ({ region, years })))
       .then((covered) => { if (!cancelled) setCogCoverage(covered); });
     return () => { cancelled = true; };
   }, [rasterRegions, moduleYears, selectedYear]);
+
+  // Source id -> "Module / Layer". Ids are built below as
+  // `<prefix>-<layerId>-<region>`, and layer ids themselves contain hyphens, so
+  // this is a lookup rather than a parse.
+  const layerLabelById = useMemo(() => {
+    const labels = {};
+    MODULES.forEach((module) => {
+      module.layers?.forEach((layer) => {
+        rasterRegions.forEach((region) => {
+          const label = `${module.name} · ${layer.name}`;
+          labels[`raster-${layer.id}-${region}`] = label;
+          labels[`cog-${layer.id}-${region}`] = label;
+        });
+      });
+    });
+    return labels;
+  }, [rasterRegions]);
+
+  // Source ids carry a trailing year; the label is the same whichever year is
+  // showing, so it is looked up without one.
+  const labelForSourceId = useCallback(
+    (id) => layerLabelById[id.replace(/-\d{4}$/, '')],
+    [layerLabelById],
+  );
+
+  // One entry per layer, however many regions are still fetching for it: the
+  // user asked which module is loading, not how the request fan-out went.
+  const loadingLabel = useMemo(() => {
+    const names = [...new Set(loadingSourceIds.map(labelForSourceId).filter(Boolean))];
+    if (names.length === 0) return null;
+    if (names.length === 1) return names[0];
+    return `${names[0]} +${names.length - 1} more`;
+  }, [loadingSourceIds, labelForSourceId]);
 
   const maplibreLayers = useMemo(() => {
     if (!USE_MAPLIBRE) return { rasterLayers: [], cogLayers: [] };
@@ -601,20 +698,39 @@ function App() {
         const moduleYear = moduleYears[module.id] || selectedYear;
 
         rasterRegions.forEach((region) => {
-          // Until the probe resolves, cogCoverage is null and no COG is used --
-          // the PNG path renders meanwhile, which is the better thing to show
-          // while waiting and the only thing to show if no COG exists.
-          const hasCog = cogCoverage?.has(`${region}_${moduleYear}`);
-          const cogUrl = USE_COG_CLEARCUT && hasCog
-            ? clearcutCogUrl(layer.id, region, moduleYear)
-            : null;
+          // Does this layer have a COG product at all? Only clearcut does;
+          // everything else goes straight to its PNG pyramid.
+          const cogCapable = USE_COG_CLEARCUT
+            && clearcutCogUrl(layer.id, region, moduleYear) !== null;
+
+          // Hold off until coverage is known rather than rendering the PNG
+          // meanwhile. Falling back eagerly meant every clearcut region fired a
+          // full pyramid of tile requests on load, only to be replaced by the
+          // COG a moment later once the manifest arrived -- the requests still
+          // completed, so it was a burst of downloads for tiles nobody drew.
+          // The manifest is a single small file, so the wait is brief.
+          if (cogCapable && cogCoverage === null) return;
+
+          // Skip regions with no clearcut product at all. lakehead_2025 has
+          // neither a COG nor a tile pyramid, so the PNG fallback was issuing a
+          // full request tree per region purely to collect 404s.
+          if (cogCapable && clearcutRegions && !clearcutRegions.has(region)) return;
+
+          const hasCog = cogCapable && cogCoverage.has(`${region}_${moduleYear}`);
+          const cogUrl = hasCog ? clearcutCogUrl(layer.id, region, moduleYear) : null;
           if (cogUrl) {
             // color carries the layer's identity, not the class's: accumulated and
             // annual are both class 2 in the raster, so without it they'd paint the
             // same and the two layers would be indistinguishable when stacked.
-            cogLayers.push({ id: `${layer.id}-${region}`, url: cogUrl, color: layer.color });
+            cogLayers.push({ id: `${layer.id}-${region}-${moduleYear}`, url: cogUrl, color: layer.color });
             return;
           }
+
+          // Per region AND year: troutlake has clearcut tiles for 2020 and 2024
+          // only, so a region-level check still asked for 2025.
+          const tileDir = tileDirOf(layer.tileUrl);
+          const covered = tileDir ? tileCoverage[tileDir] : null;
+          if (covered && !covered.has(`${region}_${moduleYear}`)) return;
 
           let tileUrl = layer.tileUrl.replace('{year}', moduleYear).replace('{region}', region);
 
@@ -626,7 +742,16 @@ function App() {
           }
 
           rasterLayers.push({
-            id: `${layer.id}-${region}`,
+            // The year is part of the id so a year change REPLACES the source
+            // rather than retuning it. react-map-gl calls setTiles when only the
+            // URLs change, and reloading a source that is mid-draw leaves a
+            // renderable tile whose texture has been returned to the pool --
+            // MapLibre then throws "Cannot read properties of undefined
+            // (reading 'bind')" from its render loop, on an unguarded bind that
+            // no paint setting can avoid. Remove-and-add tears the old tiles
+            // down with their layer, so nothing is left pointing at a freed
+            // texture.
+            id: `${layer.id}-${region}-${moduleYear}`,
             // Routed through the tint protocol for the layers whose PNGs are a
             // flat intensity ramp that <RasterTileLayer> recolors on Leaflet.
             // Clearcut is excluded: it gets its color from the COG palette.
@@ -638,7 +763,7 @@ function App() {
     });
 
     return { rasterLayers, cogLayers };
-  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage]);
+  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage, clearcutRegions, tileCoverage]);
 
   // What the AI agent needs to answer "what's in here" across every layer the
   // user has switched on, not just the module currently in front. Names rather
@@ -672,15 +797,22 @@ function App() {
     }
   }, [moduleYears]);
 
+  // The year is a property of the view, not of the module being read: the
+  // timeline sits on the map and moves everything drawn there. Setting only the
+  // selected module's year meant playback animated one layer while the others
+  // stayed frozen on whatever year they were last left at -- and, worse, that
+  // the map showed several different years at once without saying so.
+  //
+  // Modules with no data for a year simply draw nothing for it; the tile and COG
+  // coverage gates already handle that, so no year needs special-casing here.
   const handleYearChange = useCallback((year) => {
     setSelectedYear(year);
-    if (selectedModule?.id) {
-      setModuleYears((prev) => ({
-        ...prev,
-        [selectedModule.id]: year,
-      }));
-    }
-  }, [selectedModule]);
+    setModuleYears((prev) => {
+      const next = { ...prev };
+      MODULES.forEach((module) => { next[module.id] = year; });
+      return next;
+    });
+  }, []);
 
   const PAGE_MAP = {
     about: AboutPage,
@@ -757,18 +889,6 @@ function App() {
         />
 
         <div className="map-center">
-          <div className="search-container">
-            <span className="search-icon" aria-hidden="true">🔍</span>
-            <input
-              className="search-box"
-              placeholder="Search a place"
-              ref={searchRef}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handlePlaceChanged(autocompleteRef, mapRef);
-              }}
-            />
-          </div>
-
           <FMUSelector values={selectedFMUs} onChange={setSelectedFMUs} />
 
           {shouldLimitRasterRegions && (
@@ -787,6 +907,16 @@ function App() {
             </div>
           )}
 
+          {/* The year drives what is drawn, so it lives with the map rather than
+              in the module panel -- and stays reachable while the panel is
+              showing a chart or the AI agent. */}
+          <MapTimeline
+            years={timelineYears}
+            selectedYear={selectedYear}
+            onYearChange={handleYearChange}
+            loading={tilesBusy}
+          />
+
           <MapSourcesInfo onOpenDocumentation={() => setActivePage('documentation')} />
 
           <button
@@ -803,19 +933,35 @@ function App() {
             title="Locate Me"
           />
 
-          <div className="loading-indicator" style={{ display: mapReady ? 'none' : 'block' }}>
-            Loading map...
+          {/* The label is for screen readers only: the spinner sits over the map
+              and a word of text there competes with the data underneath. */}
+          <div className="loading-indicator" style={{ display: mapReady ? 'none' : 'flex' }}>
+            <span className="loading-spinner" role="status" aria-label="Loading map" />
           </div>
 
-          <div className="loading-indicator" style={{ display: tilesLoading ? 'block' : 'none' }}>
-            Loading...
+          {/* Centred but small and click-through, so it marks progress without
+              standing in front of the data. The status line names what is
+              actually being fetched -- "still loading" is far less useful than
+              "still loading Wildfire". */}
+          <div className="tile-activity" style={{ display: tilesLoading ? 'flex' : 'none' }}>
+            <span className="loading-spinner loading-spinner--small" role="status" aria-label="Loading map data" />
           </div>
+
+          {tilesLoading && (
+            <div className="load-status" role="status">
+              Loading{loadingLabel ? ` ${loadingLabel}` : ' map data'}…
+            </div>
+          )}
 
           {USE_MAPLIBRE ? (() => {
             const basemapYear = moduleYears[selectedModule?.id] || selectedYear;
             const { url, attribution } = getBasemapConfig(basemapYear);
             return (
-              <React.Suspense fallback={<div className="loading-indicator">Loading map…</div>}>
+              <React.Suspense fallback={(
+                <div className="loading-indicator" style={{ display: 'flex' }}>
+                  <span className="loading-spinner" role="status" aria-label="Loading map" />
+                </div>
+              )}>
               <MapLibreMap
                 center={center}
                 zoom={TILE_ZOOM_LEVELS[0]}
@@ -833,6 +979,7 @@ function App() {
                 onMapReady={() => setMapReady(true)}
                 onDrawChange={setDrawnFeatures}
                 onAskAboutDrawing={askAboutDrawing}
+                onLoadingChange={handleLoadingChange}
                 proposedFeatures={proposedFeatures}
                 drawingEnabled
               />
@@ -937,9 +1084,7 @@ function App() {
             module={selectedModule}
             data={moduleData}
             selectedYear={selectedYear}
-            onYearChange={handleYearChange}
             yearRange={selectedModule?.temporalOptions?.yearRange || [2010, 2024]}
-            availableYears={availableYearsForPanel}
             basemapSynced={
               basemapMode !== 'satellite' ||
               isBasemapSynced(moduleYears[selectedModule?.id] || selectedYear)

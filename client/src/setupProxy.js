@@ -1,7 +1,20 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '..', '.env.r2') });
 
+const https = require('https');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+
+// A map view fans out into dozens of parallel tile requests, and without a
+// keep-alive agent each one opens a fresh TLS connection and a fresh DNS
+// lookup. That is what produces the intermittent ENOTFOUND against R2: the
+// bucket is reachable, the resolver is just being asked hundreds of times a
+// second. Pooling connections collapses that to a handful of lookups and makes
+// the tiles arrive faster besides.
+const keepAliveAgent = new https.Agent({
+  keepAlive: true,
+  maxSockets: 24,
+  timeout: 30000,
+});
 
 // Public R2 bucket holding the COGs -- the same origin the production build
 // reads directly. Read from the root .env.r2 (the file upload-cogs.js already
@@ -17,6 +30,23 @@ const R2_PUBLIC = process.env.R2_PUBLIC;
 // server itself, so a developer who sets PORT=3000 would have this proxy dial
 // the dev server and loop back into itself.
 const API_PORT = process.env.API_PORT || 3001;
+
+// Shared config for the two R2 passthroughs.
+function r2Proxy(prefix) {
+  return {
+    target: R2_PUBLIC,
+    changeOrigin: true,
+    agent: keepAliveAgent,
+    pathRewrite: { [`^${prefix}`]: prefix },
+    // A missing tile is normal -- pyramids are sparse -- and a transient DNS
+    // failure is not worth a stack trace per tile. Answer the browser and log
+    // one line instead of letting the default handler print the full error.
+    onError: (err, _req, res) => {
+      if (!res.headersSent) res.writeHead(502, { 'Content-Type': 'text/plain' });
+      res.end(`proxy error: ${err.code || err.message}`);
+    },
+  };
+}
 
 module.exports = function (app) {
   app.use(
@@ -46,14 +76,7 @@ module.exports = function (app) {
     return;
   }
 
-  app.use(
-    '/cogs',
-    createProxyMiddleware({
-      target: R2_PUBLIC,
-      changeOrigin: true,
-      pathRewrite: { '^/cogs': '/cogs' },
-    })
-  );
+  app.use('/cogs', createProxyMiddleware(r2Proxy('/cogs')));
 
   // PNG tiles, for the same two reasons as the COGs above.
   //
@@ -65,12 +88,5 @@ module.exports = function (app) {
   //
   // Requests fall through to client/public/tiles/ first, so a locally generated
   // tile set still wins over the bucket.
-  app.use(
-    '/tiles',
-    createProxyMiddleware({
-      target: R2_PUBLIC,
-      changeOrigin: true,
-      pathRewrite: { '^/tiles': '/tiles' },
-    })
-  );
+  app.use('/tiles', createProxyMiddleware(r2Proxy('/tiles')));
 };

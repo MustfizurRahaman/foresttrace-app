@@ -26,6 +26,11 @@ client/public/data/regions/
 # the boundaries above. ~1.7 MB across the years, and regenerated whenever the
 # accumulation rule changes, so the repo is the wrong place for them.
 client/public/data/patches/
+# COG availability manifest: describes the R2 bucket, not the source tree, so a
+# committed copy is a claim about someone else's state that goes stale on the
+# next upload. Rebuild with generate-cog-manifest.js, which publishes it to R2;
+# dev reads it back through the /cogs proxy.
+client/public/cogs/
 
 # Claude Code session backup files (DPH-* prefix)
 *-DPH-*
@@ -195,3 +200,7 @@ wabigoon.geojson
 wabigoon.prj
 wabigoon.shp
 wabigoon.shx
+
+# Local drafts for GitHub issues -- written to be pasted into the tracker, not
+# kept in the tree.
+issues/

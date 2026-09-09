@@ -150,6 +150,27 @@ export async function getClearcutWindowMeta(region, sensor = DEFAULT_CLEARCUT_SE
   return all[`${region}_${sensor}_window`] ?? {};
 }
 
+/**
+ * Regions that have any clearcut product at all, for a sensor.
+ *
+ * The stats file is written by the same pipeline that generates the tiles and
+ * COGs, so a region absent from it has no clearcut raster to request. Without
+ * this the map fell back to a PNG pyramid for every selected region -- at 39
+ * FMUs that is thousands of tile requests, all 404, for regions that were never
+ * processed.
+ */
+export async function getRegionsWithClearcutData(sensor = DEFAULT_CLEARCUT_SENSOR) {
+  const all = await loadStats();
+  const suffix = `_${sensor}`;
+  return new Set(
+    Object.keys(all)
+      // `<region>_<sensor>` is the accumulated series; the _annual, _window and
+      // _accuracy keys are derived from it, so matching the bare key is enough.
+      .filter((key) => key.endsWith(suffix))
+      .map((key) => key.slice(0, -suffix.length)),
+  );
+}
+
 export function clearStatsCache() {
   _statsPromise = null;
 }
