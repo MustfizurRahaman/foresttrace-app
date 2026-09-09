@@ -23,7 +23,10 @@ const FRAME_MS = 1200;
 // advance on a visibly incomplete frame than to appear frozen.
 const MAX_WAIT_MS = 8000;
 
-function MapTimeline({ years, selectedYear, onYearChange, loading = false, disabled = false }) {
+function MapTimeline({
+  years, selectedYear, onYearChange, onPlayingChange,
+  loading = false, disabled = false,
+}) {
   const [playing, setPlaying] = useState(false);
   // The tick the pointer is over, so the label can preview it without the map
   // reloading on the way past.
@@ -32,6 +35,13 @@ function MapTimeline({ years, selectedYear, onYearChange, loading = false, disab
   const index = Math.max(0, years.indexOf(selectedYear));
   const onYearChangeRef = useRef(onYearChange);
   onYearChangeRef.current = onYearChange;
+
+  // Lifted so the map can buffer upcoming years only while playing -- rendering
+  // three years' worth of sources during ordinary browsing would triple the
+  // requests for no benefit.
+  const onPlayingChangeRef = useRef(onPlayingChange);
+  onPlayingChangeRef.current = onPlayingChange;
+  useEffect(() => { onPlayingChangeRef.current?.(playing); }, [playing]);
 
   // Playback stops at the end rather than looping: a loop makes it ambiguous
   // whether the last frame is the newest year or a rerun of the first.

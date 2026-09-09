@@ -57,7 +57,10 @@ function parseTintedUrl(url) {
 // ImageData rather than ImageBitmap: MapLibre takes ownership of the bitmap it
 // is handed, so a cached one cannot be served twice. Rebuilding a bitmap from
 // cached pixels skips the network and the worker, which are the costly parts.
-const MAX_CACHED_TILES = 160;   // ~42 MB at 256x256 RGBA
+// Sized for playback rather than for a single view: buffering two years ahead
+// across several regions puts three frames' worth of tiles in play at once, and
+// a cache that evicts within one pass of the timeline is no cache at all.
+const MAX_CACHED_TILES = 600;   // ~157 MB worst case at 256x256 RGBA, far less in practice
 const tintCache = new Map();
 
 function cacheGet(key) {

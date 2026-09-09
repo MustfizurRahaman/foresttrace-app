@@ -641,7 +641,9 @@ function MapLibreMap({
           <Layer
             id={`raster-layer-${layer.id}`}
             type="raster"
-            paint={RASTER_PAINT(rasterOpacity)}
+            // opacity 0 marks a buffered year: mounted so its tiles load, not
+            // drawn until the timeline reaches it.
+            paint={RASTER_PAINT(layer.opacity ?? rasterOpacity)}
           />
         </Source>
       ))}
@@ -657,7 +659,7 @@ function MapLibreMap({
           <Layer
             id={`cog-layer-${layer.id}`}
             type="raster"
-            paint={RASTER_PAINT(rasterOpacity)}
+            paint={RASTER_PAINT(layer.opacity ?? rasterOpacity)}
           />
         </Source>
       ))}

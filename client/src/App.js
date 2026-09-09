@@ -599,6 +599,10 @@ function App() {
   // does today, so requesting one per selected region gave a 404 per region and
   // an AggregateError out of MapLibre's tile loader -- and drew nothing, rather
   // than falling back to the PNG pyramid that does exist for every region.
+  // How many years ahead playback buffers.
+  const PREFETCH_YEARS = 2;
+  const [playing, setPlaying] = useState(false);
+
   const [cogCoverage, setCogCoverage] = useState(null);
   // Regions that have a clearcut product of any kind. null until known, and
   // treated the same way as unknown COG coverage: request nothing yet.
@@ -693,11 +697,24 @@ function App() {
 
         const moduleYear = moduleYears[module.id] || selectedYear;
 
+        // The current year, then the buffer. Buffered years are mounted at zero
+        // opacity so MapLibre fetches their tiles for the current viewport
+        // before they are needed; when the year advances the source it wants
+        // already exists, loaded, instead of starting a fresh round of
+        // requests. Only while playing -- doing this during ordinary browsing
+        // would triple the requests for no benefit.
+        const upcoming = playing
+          ? timelineYears.slice(timelineYears.indexOf(moduleYear) + 1, timelineYears.indexOf(moduleYear) + 1 + PREFETCH_YEARS)
+          : [];
+
+        [moduleYear, ...upcoming].forEach((renderYear, frameIdx) => {
+        const layerOpacity = frameIdx === 0 ? undefined : 0;
+
         rasterRegions.forEach((region) => {
           // Does this layer have a COG product at all? Only clearcut does;
           // everything else goes straight to its PNG pyramid.
           const cogCapable = USE_COG_CLEARCUT
-            && clearcutCogUrl(layer.id, region, moduleYear) !== null;
+            && clearcutCogUrl(layer.id, region, renderYear) !== null;
 
           // Hold off until coverage is known rather than rendering the PNG
           // meanwhile. Falling back eagerly meant every clearcut region fired a
@@ -712,13 +729,18 @@ function App() {
           // full request tree per region purely to collect 404s.
           if (cogCapable && clearcutRegions && !clearcutRegions.has(region)) return;
 
-          const hasCog = cogCapable && cogCoverage.has(`${region}_${moduleYear}`);
-          const cogUrl = hasCog ? clearcutCogUrl(layer.id, region, moduleYear) : null;
+          const hasCog = cogCapable && cogCoverage.has(`${region}_${renderYear}`);
+          const cogUrl = hasCog ? clearcutCogUrl(layer.id, region, renderYear) : null;
           if (cogUrl) {
             // color carries the layer's identity, not the class's: accumulated and
             // annual are both class 2 in the raster, so without it they'd paint the
             // same and the two layers would be indistinguishable when stacked.
-            cogLayers.push({ id: `${layer.id}-${region}-${moduleYear}`, url: cogUrl, color: layer.color });
+            cogLayers.push({
+              id: `${layer.id}-${region}-${renderYear}`,
+              url: cogUrl,
+              color: layer.color,
+              opacity: layerOpacity,
+            });
             return;
           }
 
@@ -726,14 +748,14 @@ function App() {
           // only, so a region-level check still asked for 2025.
           const tileDir = tileDirOf(layer.tileUrl);
           const covered = tileDir ? tileCoverage[tileDir] : null;
-          if (covered && !covered.has(`${region}_${moduleYear}`)) return;
+          if (covered && !covered.has(`${region}_${renderYear}`)) return;
 
-          let tileUrl = layer.tileUrl.replace('{year}', moduleYear).replace('{region}', region);
+          let tileUrl = layer.tileUrl.replace('{year}', renderYear).replace('{region}', region);
 
-          if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(moduleYear)) {
+          if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(renderYear)) {
             tileUrl = tileUrl.replace(
-              `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/`,
-              `${TILES_BASE_URL}/tiles/clearcut/${region}_${moduleYear}/${DEFAULT_CLEARCUT_SENSOR}/`,
+              `${TILES_BASE_URL}/tiles/clearcut/${region}_${renderYear}/`,
+              `${TILES_BASE_URL}/tiles/clearcut/${region}_${renderYear}/${DEFAULT_CLEARCUT_SENSOR}/`,
             );
           }
 
@@ -747,7 +769,8 @@ function App() {
             // no paint setting can avoid. Remove-and-add tears the old tiles
             // down with their layer, so nothing is left pointing at a freed
             // texture.
-            id: `${layer.id}-${region}-${moduleYear}`,
+            id: `${layer.id}-${region}-${renderYear}`,
+            opacity: layerOpacity,
             // Routed through the tint protocol for the layers whose PNGs are a
             // flat intensity ramp that <RasterTileLayer> recolors on Leaflet.
             // Clearcut is excluded: it gets its color from the COG palette.
@@ -755,11 +778,13 @@ function App() {
             tms: layer.tms !== undefined ? layer.tms : true,
           });
         });
+        });
       });
     });
 
     return { rasterLayers, cogLayers };
-  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage, clearcutRegions, tileCoverage]);
+  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage,
+      clearcutRegions, tileCoverage, playing, timelineYears]);
 
   // What the AI agent needs to answer "what's in here" across every layer the
   // user has switched on, not just the module currently in front. Names rather
@@ -910,6 +935,7 @@ function App() {
             years={timelineYears}
             selectedYear={selectedYear}
             onYearChange={handleYearChange}
+            onPlayingChange={setPlaying}
             loading={tilesBusy}
           />
 
