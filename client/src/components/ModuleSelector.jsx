@@ -14,8 +14,20 @@ function ModuleSelector({
   selectedYear,
   selectedFMUs,
   selectedSensor,
+  drawingContext,
+  activeTab: controlledTab,
+  onTabChange,
+  pendingPrompt,
+  onPromptConsumed,
+  onProposeFeatures,
+  regionsData,
 }) {
-  const [activeTab, setActiveTab] = useState('modules');
+  // Controlled when the parent supplies a tab -- the map's "Ask AI" button has
+  // to be able to bring this panel to the agent -- and self-managed otherwise,
+  // so existing callers keep working.
+  const [ownTab, setOwnTab] = useState('modules');
+  const activeTab = controlledTab ?? ownTab;
+  const setActiveTab = onTabChange ?? setOwnTab;
   const [expandedModules, setExpandedModules] = useState({ [modules[0]?.id]: true });
   const [panelWidth, setPanelWidth] = useState(240);
   const [isResizing, setIsResizing] = useState(false);
@@ -142,6 +154,11 @@ function ModuleSelector({
           selectedYear={selectedYear}
           selectedFMUs={selectedFMUs}
           selectedSensor={selectedSensor}
+          drawingContext={drawingContext}
+          pendingPrompt={pendingPrompt}
+          onPromptConsumed={onPromptConsumed}
+          onProposeFeatures={onProposeFeatures}
+          regionsData={regionsData}
         />
       )}
 

@@ -30,9 +30,15 @@ export const COG_BASE_URL = process.env.REACT_APP_COG_BASE_URL || TILES_BASE_URL
 //   v2: standing clearcut = seen in >=2 years of the 5-year window, no 2010 carry
 //   v3: v2 OR detected this year -- the newest year has no later year to
 //       corroborate it, so v2 excluded the current season's cuts entirely
+//   v4: corroboration must be CONSECUTIVE -- seen in two adjacent years inside
+//       the window, OR detected this year. v3 counted sightings however far
+//       apart, so a pixel seen in 2019 and 2023 vouched for the four years
+//       between; adjacency reads corroboration as "still there next season".
+//       Mature years fall ~4-5%; 2017-2019 fall ~21%, because those windows
+//       leaned on the 2010 baseline, which has no calendar neighbour.
 const COG_PREFIX_BY_LAYER = {
   'clearcut-annual': 'clearcut-annual',
-  'clearcut-accumulated': 'clearcut-accumulated-v3',
+  'clearcut-accumulated': 'clearcut-accumulated-v4',
 };
 
 /**

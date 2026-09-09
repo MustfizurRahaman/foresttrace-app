@@ -16,6 +16,7 @@ import HelpPage from './pages/HelpPage';
 import NewsPage from './pages/NewsPage';
 import PublicationPage from './pages/PublicationPage';
 import DocumentationPage from './pages/DocumentationPage';
+import MapSourcesInfo from './components/MapSourcesInfo';
 import ClearcutDetection from './modules/ClearcutDetection';
 import BiomassModule from './modules/BiomassModule';
 import WildfireModule from './modules/WildfireModule';
@@ -27,6 +28,7 @@ import { getFireYearsForRegions } from './utils/wildfireYears';
 import { TILES_BASE_URL, clearcutCogUrl } from './config';
 import useRegionBoundaries from './hooks/useRegionBoundaries';
 import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
+import { summarizeDrawing } from './utils/drawnShapeContext';
 
 import './styles/map.css';
 import './styles/topmenu.css';
@@ -95,6 +97,14 @@ const TILE_ZOOM_RANGE = {
 // Esri's Light Gray Canvas cache stops at level 16 — deeper requests just
 // re-serve the same overzoomed level-16 tile, so cap zoom there in light mode.
 const LIGHT_BASEMAP_MAX_ZOOM = 16;
+
+// How far the viewport may zoom out, which is NOT where the tile pyramid starts.
+// The two were the same value, so the map was pinned to the tiles' floor of z6 --
+// too close to fit Ontario, which spans ~15 degrees of latitude and needs about
+// z4. Below z6 the raster overlays simply stop drawing (their sources declare
+// minzoom 6); the basemap and FMU boundaries still do, which is what makes a
+// province-wide view worth having.
+const MAP_MIN_ZOOM = 4;
 const RASTER_MULTI_FMU_SOFT_LIMIT = 8;
 const PREFERRED_RASTER_REGIONS = ['wabigoon', 'troutlake'];
 
@@ -225,9 +235,11 @@ const MODULES = [
   },
 ];
 
-function DrawingTools({ mapRef }) {
+function DrawingTools({ mapRef, onDrawChange }) {
   const map = useMap();
   mapRef.current = map;
+  const onDrawChangeRef = useRef(onDrawChange);
+  onDrawChangeRef.current = onDrawChange;
 
   useEffect(() => {
     map.pm.addControls({
@@ -241,13 +253,32 @@ function DrawingTools({ mapRef }) {
       removalMode: true,
     });
 
-    const onCreate = (e) => {
-      console.log('Shape created:', e.layer.toGeoJSON());
+    // Re-read every geoman layer on any change rather than tracking a diff:
+    // geoman fires create/remove/edit through several different events, and a
+    // shape edited or deleted through the toolbar would otherwise leave a stale
+    // copy behind. The layer count here is single digits, so re-reading is free.
+    const publish = () => {
+      if (!onDrawChangeRef.current) return;
+      const features = map.pm.getGeomanLayers()
+        .map((layer) => (layer.toGeoJSON ? layer.toGeoJSON() : null))
+        .filter(Boolean);
+      onDrawChangeRef.current(features);
     };
+
+    // pm:create fires before the layer joins the map's geoman registry, so
+    // publishing synchronously would miss the shape just drawn.
+    const onCreate = () => setTimeout(publish, 0);
+
     map.on('pm:create', onCreate);
+    map.on('pm:remove', publish);
+    map.on('pm:cut', publish);
+    map.on('pm:edit', publish);
 
     return () => {
       map.off('pm:create', onCreate);
+      map.off('pm:remove', publish);
+      map.off('pm:cut', publish);
+      map.off('pm:edit', publish);
       map.pm.removeControls();
     };
   }, [map]);
@@ -509,6 +540,31 @@ function App() {
   // identical data.
   const maplibreRegions = useRegionBoundaries(selectedFMUs, useOntarioOverview);
 
+  // Shapes the user has drawn, from whichever renderer is active. Held here
+  // rather than inside either map so the AI agent sees the same thing on both.
+  const [drawnFeatures, setDrawnFeatures] = useState([]);
+
+  // Boundaries are only loaded by the hook on the MapLibre path; the Leaflet
+  // <RegionBoundaries> calls the same hook, which caches, so this is the same
+  // data either way and costs nothing extra.
+  const drawingContext = useMemo(
+    () => summarizeDrawing(drawnFeatures, maplibreRegions),
+    [drawnFeatures, maplibreRegions],
+  );
+
+  // Which panel tab is showing. Lifted out of <ModuleSelector> so the map's
+  // "Ask AI" button can bring the agent forward.
+  const [panelTab, setPanelTab] = useState('modules');
+  const [pendingPrompt, setPendingPrompt] = useState(null);
+  // Geometry the assistant proposed. Kept apart from drawnFeatures so a
+  // proposal never feeds back into the context as something the user drew.
+  const [proposedFeatures, setProposedFeatures] = useState(null);
+
+  const askAboutDrawing = useCallback(() => {
+    setPanelTab('forest-ai');
+    setPendingPrompt("What's in here?");
+  }, []);
+
   // Flattens the module/layer/region matrix into plain source descriptors.
   // Mirrors the <RasterTileLayer> mapping in the Leaflet branch below -- kept as
   // data rather than components because MapLibre sources are declared by value.
@@ -559,12 +615,26 @@ function App() {
     return { rasterLayers, cogLayers };
   }, [activeLayers, rasterRegions, moduleYears, selectedYear]);
 
+  // What the AI agent needs to answer "what's in here" across every layer the
+  // user has switched on, not just the module currently in front. Names rather
+  // than ids, since these go into a prompt.
+  const activeLayerSummary = useMemo(() => (
+    MODULES.flatMap((module) => (activeLayers[module.id] || []).map((layerId) => ({
+      module: module.name,
+      layer: module.layers?.find((l) => l.id === layerId)?.name || layerId,
+      year: moduleYears[module.id] || selectedYear,
+    })))
+  ), [activeLayers, moduleYears, selectedYear]);
+
   const moduleData = {
     percentage: clearcutPercent,
     opacity: rasterOpacity,
     biomassHistogram,
+    activeLayerSummary,
     selectedFMUs,
     selectedYear,
+    // Lets the clearcut module narrow its chart to regions the map can draw.
+    useCogClearcut: USE_COG_CLEARCUT,
   };
 
   const handleModuleSelect = useCallback((module) => {
@@ -652,6 +722,13 @@ function App() {
           selectedYear={selectedYear}
           selectedFMUs={selectedFMUs}
           selectedSensor={DEFAULT_CLEARCUT_SENSOR}
+          drawingContext={drawingContext}
+          activeTab={panelTab}
+          onTabChange={setPanelTab}
+          pendingPrompt={pendingPrompt}
+          onPromptConsumed={() => setPendingPrompt(null)}
+          onProposeFeatures={setProposedFeatures}
+          regionsData={maplibreRegions}
         />
 
         <div className="map-center">
@@ -685,6 +762,8 @@ function App() {
             </div>
           )}
 
+          <MapSourcesInfo onOpenDocumentation={() => setActivePage('documentation')} />
+
           <button
             className="basemap-toggle-btn"
             onClick={() => setBasemapMode((m) => (m === 'satellite' ? 'light' : 'satellite'))}
@@ -715,7 +794,7 @@ function App() {
               <MapLibreMap
                 center={center}
                 zoom={TILE_ZOOM_LEVELS[0]}
-                minZoom={TILE_ZOOM_RANGE.min}
+                minZoom={MAP_MIN_ZOOM}
                 maxZoom={mapMaxZoom}
                 basemapMode={basemapMode}
                 satelliteUrl={url}
@@ -727,7 +806,9 @@ function App() {
                 rasterOpacity={rasterOpacity}
                 mapRef={mapRef}
                 onMapReady={() => setMapReady(true)}
-                onShapeCreate={(feature) => console.log('Shape created:', feature)}
+                onDrawChange={setDrawnFeatures}
+                onAskAboutDrawing={askAboutDrawing}
+                proposedFeatures={proposedFeatures}
                 drawingEnabled
               />
               </React.Suspense>
@@ -736,7 +817,7 @@ function App() {
           <MapContainer
             center={center}
             zoom={TILE_ZOOM_LEVELS[0]}
-            minZoom={TILE_ZOOM_RANGE.min}
+            minZoom={MAP_MIN_ZOOM}
             maxZoom={mapMaxZoom}
             zoomControl={false}
             whenCreated={(mapInstance) => {
@@ -819,7 +900,7 @@ function App() {
             })}
 
             <RegionBoundaries selectedFMUs={selectedFMUs} useOntarioOverview={useOntarioOverview} basemapMode={basemapMode} />
-            <DrawingTools mapRef={mapRef} />
+            <DrawingTools mapRef={mapRef} onDrawChange={setDrawnFeatures} />
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />
           </MapContainer>

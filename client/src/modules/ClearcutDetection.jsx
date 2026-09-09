@@ -6,12 +6,15 @@ import {
 import {
   computeClearcutAreaPerYear,
   computeAnnualClearcutAreaPerYear,
+  computeEnteringClearcutAreaPerYear,
+  computeCarriedClearcutAreaPerYear,
   getAnnualYearsWithData,
   getClearcutAccuracy,
   getClearcutWindowMeta,
   DEFAULT_CLEARCUT_SENSOR,
 } from '../utils/clearcutAreaStats';
 import { DATA_BASE_URL } from '../config';
+import { getCogCoverage } from '../utils/clearcutCogCoverage';
 
 const CLEARCUT_YEARS = [2010, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025];
 
@@ -106,6 +109,8 @@ function ClearcutDetection({ data }) {
 
   const selectedSensor = data?.selectedSensor ?? DEFAULT_CLEARCUT_SENSOR;
   const selectedYear   = data?.selectedYear;
+  // When the map renders COGs, the chart counts only what the map can draw.
+  const useCogClearcut = data?.useCogClearcut ?? false;
 
   // Sum GeoJSON areas for all selected regions.
   useEffect(() => {
@@ -135,45 +140,115 @@ function ClearcutDetection({ data }) {
           getAnnualYearsWithData(r, selectedSensor),
           getClearcutAccuracy(r, selectedSensor),
           getClearcutWindowMeta(r, selectedSensor),
+          // Appended, not inserted: every destructuring below indexes this
+          // tuple positionally, so a new entry belongs at the end.
+          computeEnteringClearcutAreaPerYear(r, CLEARCUT_YEARS, selectedSensor),
+          computeCarriedClearcutAreaPerYear(r, CLEARCUT_YEARS, selectedSensor),
         ])
       )
     )
-      .then(results => {
-        // Sum accumulated and annual ha across all regions per year.
+      .then(async results => {
+        // On the COG path the chart is narrowed to region/years the map can
+        // actually draw, so the two never disagree about which regions exist.
+        // Only regions that already have stats are probed -- everything else
+        // contributes zero regardless.
+        let covered = null;
+        if (useCogClearcut) {
+          const withStats = results
+            .map(([acc], i) => ({
+              region: regions[i],
+              years: CLEARCUT_YEARS.filter(y => (acc[y] ?? 0) > 0),
+            }))
+            .filter(({ years }) => years.length > 0);
+          covered = await getCogCoverage(withStats);
+        }
+        const counts = (i, y) => !covered || covered.has(`${regions[i]}_${y}`);
+
+        // Sum accumulated and per-year ha across all regions.
+        //
+        // The stacked bars want `entering` (newly standing) under `carried`
+        // (standing already), because those two partition accumulated exactly.
+        // The `annual` raw classification does not: it counts every pixel that
+        // looked cut in Y, most of which were standing from earlier years, so
+        // accumulated-minus-annual is a residue rather than "previously cut" and
+        // the genuinely new area never gets drawn. Regions whose stats predate
+        // the entering/carried fields fall back to the old split.
         const accumulated = {};
         const annual = {};
+        const entering = {};
+        const carried = {};
+        // Only regions that actually contribute can veto the entering/carried
+        // split -- a region excluded by the COG gate, or with no data at all,
+        // shouldn't force every other region back to the old fallback.
+        const contributes = (i) => CLEARCUT_YEARS.some(y => counts(i, y) && (results[i][0][y] ?? 0) > 0);
+        const haveEntering = results.every((r, i) => !contributes(i) || r[5]);
         CLEARCUT_YEARS.forEach(y => {
-          accumulated[y] = results.reduce((sum, [acc]) => sum + (acc[y] ?? 0), 0);
-          annual[y]      = results.reduce((sum, [, ann]) => sum + (ann[y] ?? 0), 0);
+          const take = (fn) => results.reduce((sum, r, i) => sum + (counts(i, y) ? (fn(r) ?? 0) : 0), 0);
+          accumulated[y] = take(([acc]) => acc[y]);
+          annual[y]      = take(([, ann]) => ann[y]);
+          if (haveEntering) {
+            entering[y] = take(([,,,,, ent]) => ent[y]);
+            carried[y]  = take(([,,,,,, car]) => car?.[y]);
+          }
         });
 
-        // A year is only comparable if it's comparable for EVERY selected
-        // region: summing a mature window in one region with a still-filling
-        // one in another produces a total that is neither.
+        // A year is only comparable if it's comparable for EVERY region that
+        // contributes area to it: summing a mature window in one region with a
+        // still-filling one in another produces a total that is neither.
+        //
+        // A contributing region with no window metadata makes the year NOT
+        // comparable rather than being skipped. Skipping it would let one
+        // documented region vouch for a total that is mostly undocumented --
+        // selecting all FMUs today puts troutlake (no _window block) above
+        // wabigoon and the sum would still be drawn as comparable.
+        //
+        // Regions contributing zero hectares are ignored, so selecting 39 FMUs
+        // where 37 have no data doesn't shade the whole chart for no reason.
         const mergedWindow = {};
         CLEARCUT_YEARS.forEach(y => {
-          const metas = results.map(([,,,, w]) => w?.[y]).filter(Boolean);
+          const contributing = results.filter(([acc], i) => counts(i, y) && (acc[y] ?? 0) > 0);
+          if (contributing.length === 0) return;
+
+          const metas = contributing.map(([,,,, w]) => w?.[y]).filter(Boolean);
+          // Nothing documents this year: annotate nothing rather than claiming
+          // it's bad -- regions whose stats predate the field land here.
           if (metas.length === 0) return;
+
+          const undocumented = contributing.length - metas.length;
           mergedWindow[y] = {
-            comparable: metas.every(m => m.comparable),
+            comparable: undocumented === 0 && metas.every(m => m.comparable),
+            undocumentedRegions: undocumented,
+            contributingRegions: contributing.length,
             isBaseline: metas.some(m => m.isBaseline),
             observationYears: Math.min(...metas.map(m => m.observationYears)),
             expectedYears: Math.max(...metas.map(m => m.expectedYears)),
-            // Worst case across regions: the fewest detections any region got,
-            // against the strictest threshold any region applies -- so the
-            // caption and tooltip describe the weakest evidence in the total.
-            minDetections: Math.min(...metas.map(m => m.minDetections)),
-            requiredDetections: Math.max(...metas.map(m => m.requiredDetections)),
+            // Which qualification rule produced these numbers. Mixed rules
+            // across regions can't be described by either, so the merged year
+            // reports no rule and the UI falls back to the generic wording.
+            rule: metas.every(m => m.rule === metas[0].rule) ? metas[0].rule : null,
+            // Worst case across regions on whichever rule applies: the weakest
+            // corroboration any region managed, against the strictest standard
+            // any region applies -- so the caption describes the weakest
+            // evidence in the total rather than the best.
+            minDetections: Math.min(...metas.map(m => m.minDetections ?? Infinity)),
+            requiredDetections: Math.max(...metas.map(m => m.requiredDetections ?? 0)),
+            adjacentPairs: Math.min(...metas.map(m => m.adjacentPairs ?? Infinity)),
+            expectedPairs: Math.max(...metas.map(m => m.expectedPairs ?? 0)),
           };
         });
         setWindowMeta(mergedWindow);
 
         // Intersection of annual data years — trend only covers years where
-        // ALL selected regions have comparable annual detection data.
-        const dataYears = results.reduce(
-          (inter, [,, years]) => new Set([...inter].filter(y => years.has(y))),
-          results[0][2]
-        );
+        // ALL contributing regions have comparable annual detection data.
+        // Regions the map can't draw are left out of the intersection too;
+        // otherwise an excluded region would still narrow the trend's span.
+        const trendYearSets = results
+          .map(([,, years], i) => ({ years, i }))
+          .filter(({ years, i }) => [...years].some(y => counts(i, y)))
+          .map(({ years, i }) => new Set([...years].filter(y => counts(i, y))));
+        const dataYears = trendYearSets.length
+          ? trendYearSets.reduce((inter, years) => new Set([...inter].filter(y => years.has(y))))
+          : new Set();
         setAnnualDataYears(dataYears);
 
         // Average accuracy metrics across regions that have validation data.
@@ -193,16 +268,18 @@ function ClearcutDetection({ data }) {
 
         setYearlyStats(
           CLEARCUT_YEARS.map(y => {
-            const totalHa      = parseFloat((accumulated[y] ?? 0).toFixed(1));
-            const annualHa     = parseFloat((annual[y] ?? 0).toFixed(1));
-            const historicalHa = parseFloat(Math.max(0, totalHa - annualHa).toFixed(1));
-            return { year: y.toString(), historical: historicalHa, annual: annualHa };
+            const totalHa  = parseFloat((accumulated[y] ?? 0).toFixed(1));
+            const newHa    = parseFloat(((haveEntering ? entering[y] : annual[y]) ?? 0).toFixed(1));
+            const priorHa  = haveEntering
+              ? parseFloat((carried[y] ?? 0).toFixed(1))
+              : parseFloat(Math.max(0, totalHa - newHa).toFixed(1));
+            return { year: y.toString(), historical: priorHa, annual: newHa };
           })
         );
       })
       .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
-  }, [regionsKey, selectedSensor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [regionsKey, selectedSensor, useCogClearcut]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Contiguous run of leading years whose accumulated window hasn't filled.
   // Shaded rather than hidden: they are real measurements, just not readable as
@@ -214,11 +291,6 @@ function ClearcutDetection({ data }) {
     if (partial.length === 0) return null;
     return { from: String(Math.min(...partial)), to: String(Math.max(...partial)) };
   }, [windowMeta]);
-
-  const baselineYear = useMemo(
-    () => CLEARCUT_YEARS.find(y => windowMeta[y]?.isBaseline) ?? null,
-    [windowMeta],
-  );
 
   // Linear regression over annual clearcut values (non-zero years only).
   const trend = useMemo(() => {
@@ -330,10 +402,19 @@ function ClearcutDetection({ data }) {
                   if (!m) return `Year ${label}`;
                   if (m.isBaseline) return `Year ${label} — baseline`;
                   if (!m.comparable) {
-                    const detail = m.minDetections < m.requiredDetections
-                      ? `${m.observationYears}/${m.expectedYears}yr window, ≥${m.minDetections} detections`
-                      : `${m.observationYears}/${m.expectedYears}yr window`;
-                    return `Year ${label} — ${detail}`;
+                    // Two different reasons a year isn't comparable, and the
+                    // undocumented-region one has to be named -- otherwise it
+                    // reads as a window-filling problem the user could wait out.
+                    if (m.undocumentedRegions > 0) {
+                      return `Year ${label} — ${m.undocumentedRegions}/${m.contributingRegions} regions undocumented`;
+                    }
+                    const span = `${m.observationYears}/${m.expectedYears}yr window`;
+                    const short = m.rule === 'consecutive'
+                      ? m.adjacentPairs < m.expectedPairs
+                        && `${m.adjacentPairs}/${m.expectedPairs} consecutive pairs`
+                      : m.minDetections < m.requiredDetections
+                        && `≥${m.minDetections} detections`;
+                    return `Year ${label} — ${short ? `${span}, ${short}` : span}`;
                   }
                   return `Year ${label}`;
                 }}
@@ -374,17 +455,6 @@ function ClearcutDetection({ data }) {
               )}
             </ComposedChart>
           </ResponsiveContainer>
-          {fillingSpan && (
-            <p className="chart-note">
-              Accumulated area counts pixels cut this year, plus older ones still detected in
-              at least {windowMeta[Number(fillingSpan.to)]?.requiredDetections ?? 2} years of a{' '}
-              {windowMeta[Number(fillingSpan.to)]?.expectedYears ?? 5}-year window — so regrowth
-              drops out while one-off detections in earlier years don't accumulate. Shaded years
-              ({fillingSpan.from}–{fillingSpan.to}) draw on fewer years than that and read low for
-              that reason alone{baselineYear ? `; ${baselineYear} is the baseline` : ''}. Compare
-              unshaded years, or use the annual series, for trends.
-            </p>
-          )}
         </div>
 
         {trend && (
@@ -405,10 +475,6 @@ function ClearcutDetection({ data }) {
         <div style={{ fontSize: 11, color: '#666', marginTop: 4 }}>
           Area from leaf-level tiles · {selectedSensor.toUpperCase()}
           · Error bars: precision/recall from validation notebooks (fallback ±{(FALLBACK_UNCERTAINTY * 100).toFixed(0)}%)
-        </div>
-        <div style={{ fontSize: 11, color: '#f59e0b', marginTop: 2 }}>
-          * 2010 &amp; 2015 used Landsat 8 OLI only — not spectrally harmonized with HLS (2016+).
-          Area estimates are not directly comparable to later years and are excluded from the trend.
         </div>
       </div>
 

@@ -9,11 +9,20 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 // bucket swap doesn't mean editing source.
 const R2_PUBLIC = process.env.R2_PUBLIC;
 
+// Port the Express API (index.js) listens on. Its own default is 3001 -- chosen
+// so CRA can hold 3000 -- and this proxy was pointing at 5001, so /api/chat got
+// ECONNREFUSED even with the server running.
+//
+// Deliberately NOT falling back to process.env.PORT: CRA uses that for the dev
+// server itself, so a developer who sets PORT=3000 would have this proxy dial
+// the dev server and loop back into itself.
+const API_PORT = process.env.API_PORT || 3001;
+
 module.exports = function (app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: 'http://localhost:5001',
+      target: `http://localhost:${API_PORT}`,
       changeOrigin: true,
     })
   );

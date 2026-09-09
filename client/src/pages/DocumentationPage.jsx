@@ -97,6 +97,52 @@ function DocumentationPage({ onBack }) {
               ['Output',            'Binary clearcut mask per year, stored as PNG tiles (XYZ scheme, zoom 6–14), clipped to FMU boundaries.'],
               ['Accuracy',          'Per-year precision, recall, F1, and IoU are stored alongside area values. Typical F1: 0.77–0.89 across HLS years (2016–2024). Uncertainty bars in the timeline are asymmetric: lower bound from precision, upper from recall.'],
             ]} />
+
+            <p className="docs-subsection-title">Annual vs accumulated</p>
+            <p>
+              The timeline stacks two quantities that partition the accumulated total exactly.
+              <strong> New clearcut</strong> is area standing this year that was not standing last
+              year; <strong>historical</strong> is area that was already standing and still is.
+              Together they sum to <strong>accumulated</strong> — standing clearcut as of that year.
+            </p>
+            <p>
+              A third series, the raw per-year classification, records every pixel the model
+              judged cut-looking in that year. It is not shown in the timeline: most of those
+              pixels were already standing clearcut from earlier years, so plotting it against
+              accumulated would conceal how much was genuinely new.
+            </p>
+
+            <p className="docs-subsection-title">The accumulation rule</p>
+            <p>
+              A pixel counts as standing clearcut when it was detected in{' '}
+              <strong>two consecutive years</strong> inside a rolling 5-year window, or when it was
+              detected in the current year. Regrowth therefore drops out instead of accumulating
+              forever, and a single-year detection — what a false positive looks like — cannot
+              enter on its own.
+            </p>
+            <p>
+              Corroboration must be consecutive rather than merely twice in the window: a pixel seen
+              in 2019 and again in 2023 does not vouch for the four years between. Expiry follows
+              from the window — a pair stops qualifying once its earlier year falls outside it. The
+              newest year is the exception, admitted uncorroborated because no later year exists yet
+              to confirm it; that year therefore carries the full single-year false-positive rate,
+              which its error bars reflect.
+            </p>
+            <p>
+              Early years draw on fewer than five years of observations and read low for that reason
+              alone. They are shaded in the timeline rather than hidden — they are real
+              measurements, just not readable as a trend against mature years. Compare unshaded
+              years, or use the new-clearcut series.
+            </p>
+
+            <p className="docs-subsection-title">Sensor comparability</p>
+            <p>
+              2010 and 2015 used <strong>Landsat 8 OLI only</strong> and are not spectrally
+              harmonized with HLS (2016 onward). Their area estimates are not directly comparable to
+              later years and are excluded from the trend fit. 2015 additionally serves as the
+              baseline of the accumulated series, and 2010 has no adjacent year in the record
+              (2011–2014 do not exist), so it can never be corroborated and stands alone.
+            </p>
           </div>
 
           <hr className="infopage-divider" />

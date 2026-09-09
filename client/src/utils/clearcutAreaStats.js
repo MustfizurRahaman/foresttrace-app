@@ -74,6 +74,37 @@ export async function computeAnnualClearcutAreaPerYear(region, years, sensor = D
 }
 
 /**
+ * Newly standing clearcut per year: in accumulated(Y) but not accumulated(Y-1).
+ *
+ * Distinct from the `_annual` series, which is the raw classification -- every
+ * pixel that looked cut in Y, most of which were already standing from earlier
+ * years. Only `entering` answers "how much was newly cut", and only
+ * `entering + carried` adds up to accumulated, so only these two can be stacked
+ * against it honestly.
+ *
+ * Returns {} for regions whose stats predate the field; callers fall back to
+ * the old accumulated-minus-annual split.
+ */
+export async function computeEnteringClearcutAreaPerYear(region, years, sensor = DEFAULT_CLEARCUT_SENSOR) {
+  const all = await loadStats();
+  const byYear = all[`${region}_${sensor}_entering`];
+  if (!byYear) return null;
+  const results = {};
+  for (const year of years) results[year] = byYear[String(year)] ?? 0;
+  return results;
+}
+
+/** Clearcut standing in Y that was already standing in Y-1. */
+export async function computeCarriedClearcutAreaPerYear(region, years, sensor = DEFAULT_CLEARCUT_SENSOR) {
+  const all = await loadStats();
+  const byYear = all[`${region}_${sensor}_carried`];
+  if (!byYear) return null;
+  const results = {};
+  for (const year of years) results[year] = byYear[String(year)] ?? 0;
+  return results;
+}
+
+/**
  * Returns the set of years that have actual annual detection data for a
  * region/sensor combination (i.e. have an entry in the stats JSON).
  * Used to constrain trendlines to years where tiles were actually processed.

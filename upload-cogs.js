@@ -58,6 +58,22 @@ const CONTENT_TYPES = {
   '.json': 'application/json',
 };
 
+// Cache policy follows from whether a filename can ever mean something new.
+//
+// COGs are published under versioned prefixes (clearcut-accumulated-v4/...), so
+// a given key's bytes never change and immutable is safe and free.
+//
+// Sidecar JSON -- patch vectors, stats -- is regenerated in place whenever the
+// derivation changes, keeping its filename. Marking that immutable would pin the
+// old file in the CDN and in every warm browser for a year, with no way to force
+// a refresh short of renaming it. It revalidates instead: cheap, since a 304 is
+// a few hundred bytes, and correct when the data is republished.
+const CACHE_CONTROL = {
+  '.tif': 'public, max-age=31536000, immutable',
+  '.tiff': 'public, max-age=31536000, immutable',
+  '.json': 'public, max-age=300, must-revalidate',
+};
+
 async function uploadFile(localPath, key) {
   const ext = path.extname(localPath).toLowerCase();
   await client.send(new PutObjectCommand({
@@ -66,7 +82,7 @@ async function uploadFile(localPath, key) {
     Body: fs.createReadStream(localPath),
     ContentType: CONTENT_TYPES[ext] || 'application/octet-stream',
     ContentLength: fs.statSync(localPath).size,
-    CacheControl: 'public, max-age=31536000, immutable',
+    CacheControl: CACHE_CONTROL[ext] || 'public, max-age=300, must-revalidate',
   }));
 }
 
@@ -103,6 +119,7 @@ async function uploadFile(localPath, key) {
     '\nNOTE: browsers range-read COGs cross-origin, so the bucket needs a CORS policy\n'
     + 'allowing GET + the Range header from your app origin. Without it the map shows\n'
     + 'nothing while curl still works. Set it in: Cloudflare Dashboard -> R2 -> your\n'
-    + 'bucket -> Settings -> CORS policy.',
+    + 'bucket -> Settings -> CORS policy. The same policy covers the sidecar JSON,\n'
+    + 'which is fetched (not <img>-loaded) and so is equally CORS-gated.',
   );
 })();

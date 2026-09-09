@@ -4,6 +4,17 @@
 // using a 2-year lookback voting filter:
 //   annual(Y) = pixels present in accumulated(Y) absent from accumulated(Y-1) AND accumulated(Y-2)
 //
+// The lookback years are Y-1 and Y-2 literally. A year whose lookback isn't in
+// the record has no filter to apply and is REFUSED rather than generated: with
+// no lookback every pixel reads as new, which silently turns annual(Y) into a
+// copy of accumulated(Y). That is what happened to 2015 and 2016 -- their
+// annual and accumulated hectares are identical to 0.1 ha -- because the
+// lookback was picked by position in AVAILABLE_YEARS, so 2016 looked back at
+// 2015 and 2010, and 2015 at 2010 alone, across a five-year gap in the record.
+//
+// Pass --allow-missing-lookback to generate anyway. Do that only if you want
+// "everything is new", and know the output isn't an annual series.
+//
 // Usage:
 //   node generate-annual-clearcut-tiles.js --local [region] [year]
 //       reads/writes client/public/tiles/ (no R2 credentials needed)
@@ -17,6 +28,7 @@
 const args = process.argv.slice(2);
 const isLocal      = args.includes('--local');
 const isProduction = args.includes('--production');
+const allowMissingLookback = args.includes('--allow-missing-lookback');
 
 if (!isLocal && !isProduction) {
   console.error('Error: specify --local or --production');
@@ -141,12 +153,26 @@ async function writeTileR2(outKey, buf) {
 
 // ── Voting logic ─────────────────────────────────────────────────────────────
 
+// The two calendar years before `year` -- not the two preceding entries in
+// AVAILABLE_YEARS. Positional lookback silently spans gaps in the record: with
+// 2011-2014 absent it made 2010 a "previous year" of 2016.
 function getPrevYears(year) {
-  const idx = AVAILABLE_YEARS.indexOf(year);
-  if (idx <= 0) return [];
-  return AVAILABLE_YEARS.slice(Math.max(0, idx - 2), idx).reverse();
+  return [year - 1, year - 2];
 }
 
+/** Which of a year's lookback years exist in the record at all. */
+function partitionLookback(year) {
+  const wanted = getPrevYears(year);
+  return {
+    present: wanted.filter(y => AVAILABLE_YEARS.includes(y)),
+    absent: wanted.filter(y => !AVAILABLE_YEARS.includes(y)),
+  };
+}
+
+// A null png means the tile isn't in the pyramid. Tile pyramids are sparse --
+// tiles with no content are never written -- so for a lookback year that IS in
+// the record, absent genuinely means empty. It only becomes a lie when the year
+// itself is missing, which processRegionYear rejects before getting here.
 function isPresent(png, x, y) {
   if (!png) return false;
   const idx = (y * png.width + x) * 4;
@@ -175,14 +201,49 @@ function computeAnnualTile(curr, prevs) {
 // ── Processing ────────────────────────────────────────────────────────────────
 
 async function processRegionYear(region, year) {
-  const prev  = getPrevYears(year);
+  const { present: prev, absent } = partitionLookback(year);
+
+  if (absent.length && !allowMissingLookback) {
+    console.error(
+      `  [refuse] ${region}/${year}: lookback year(s) ${absent.join(', ')} are not in the record. ` +
+      'Without them every pixel reads as new and annual would just copy accumulated. ' +
+      'Pass --allow-missing-lookback to override.'
+    );
+    return { written: 0, skipped: 0, refused: 1 };
+  }
+  if (absent.length) {
+    console.warn(
+      `  [warn] ${region}/${year}: generating with lookback year(s) ${absent.join(', ')} missing — ` +
+      'output is "everything is new", not an annual series.'
+    );
+  }
+
   const paths = isLocal
     ? listTilePathsLocal(region, year)
     : await listTilePathsR2(region, year);
 
   if (paths.length === 0) {
     console.log(`  [skip] no accumulated tiles for ${region}/${year}`);
-    return { written: 0, skipped: 0 };
+    return { written: 0, skipped: 0, refused: 0 };
+  }
+
+  // A lookback year that's in the record but has no tiles for this region is
+  // the same trap one level down: the filter would find nothing and pass every
+  // pixel through. Sparsity is per-tile, never per-region.
+  for (const py of prev) {
+    const prevPaths = isLocal
+      ? listTilePathsLocal(region, py)
+      : await listTilePathsR2(region, py);
+    if (prevPaths.length === 0) {
+      if (!allowMissingLookback) {
+        console.error(
+          `  [refuse] ${region}/${year}: lookback year ${py} has no tiles for this region. ` +
+          'Pass --allow-missing-lookback to override.'
+        );
+        return { written: 0, skipped: 0, refused: 1 };
+      }
+      console.warn(`  [warn] ${region}/${year}: lookback year ${py} has no tiles for this region.`);
+    }
   }
 
   let written = 0, skipped = 0;
@@ -222,7 +283,7 @@ async function processRegionYear(region, year) {
   }
 
   process.stdout.write('\r');
-  return { written, skipped };
+  return { written, skipped, refused: 0 };
 }
 
 // ── Entry point ───────────────────────────────────────────────────────────────
@@ -248,18 +309,23 @@ async function main() {
   console.log(`Generating annual clearcut tiles — ${mode}`);
   console.log(`  Regions: ${regions.length}  Years: ${years.join(', ')}\n`);
 
-  let totalWritten = 0, totalSkipped = 0;
+  let totalWritten = 0, totalSkipped = 0, totalRefused = 0;
   for (const region of regions) {
     for (const year of years) {
       process.stdout.write(`${region} ${year}…\n`);
-      const { written, skipped } = await processRegionYear(region, year);
-      console.log(`  → ${written} tiles written, ${skipped} skipped`);
+      const { written, skipped, refused } = await processRegionYear(region, year);
+      if (!refused) console.log(`  → ${written} tiles written, ${skipped} skipped`);
       totalWritten += written;
       totalSkipped += skipped;
+      totalRefused += refused ?? 0;
     }
   }
 
-  console.log(`\nDone. Total: ${totalWritten} written, ${totalSkipped} skipped.`);
+  console.log(`\nDone. Total: ${totalWritten} written, ${totalSkipped} skipped, ${totalRefused} refused.`);
+
+  // Non-zero exit so a refusal can't pass unnoticed in a scripted run -- the
+  // failure mode this guards against is silent, plausible-looking output.
+  if (totalRefused > 0) process.exitCode = 1;
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

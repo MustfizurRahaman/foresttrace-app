@@ -230,6 +230,58 @@ the training notebooks in `boreal-canada-mapping/notebooks/`.
 
 ---
 
+## Clearcut patch vectors
+
+`client/public/data/patches/<region>_<year>.json` holds the largest detected
+clearcut patches for a region and year, as GeoJSON with a `rank` and `areaHa`
+per feature. The Forestry AI Agent uses them to answer "highlight the biggest
+clearcuts": the model chooses the query, and every coordinate comes from these
+files rather than from the model.
+
+Unlike `clearcut_stats.json`, these are **not committed** — they are bulk
+generated geodata (~1.8 MB across the years) and are gitignored alongside
+`client/public/data/regions/`. A fresh clone therefore has none, and
+`highlight_patches` will refuse until you either point the app at R2 or
+generate them locally.
+
+### Generating them
+
+The extraction lives in the `boreal-canada-mapping` repo, because it reads the
+per-year classified rasters and shares the accumulation rule with them. It
+needs that repo's Python environment (rasterio, shapely, pyproj):
+
+```bash
+cd ../boreal-canada-mapping
+python scripts/extract_clearcut_patches.py \
+    --results-dir /path/to/results \
+    --out-dir     ../foresttrace-app/client/public/data/patches \
+    --region wabigoon
+```
+
+`--results-dir` must contain `clearcut_definition/` (the per-year classified
+rasters). Patches below `--min-ha` (default 5) are dropped as speckle, and
+`--top` (default 50) caps how many are published per year — the file is fetched
+by the browser, so that is a size budget as much as a data choice.
+
+Regenerate whenever the accumulation rule changes: the patches are derived from
+the same accumulated masks the map draws, so a rule change makes them stale.
+
+### Publishing them
+
+```bash
+node upload-cogs.js client/public/data/patches data/patches
+```
+
+`upload-cogs.js` sets a short revalidating cache header on `.json` (unlike the
+immutable one it uses for COGs, which live under versioned prefixes) precisely
+because these are regenerated in place under the same filenames.
+
+They are read through `REACT_APP_DATA_BASE_URL`, so the same routing as the
+boundary files applies: empty in development (served from `client/public/`),
+set to the R2 bucket in production.
+
+---
+
 ## Deployment
 
 The app is deployed on Vercel. Pushes to `main` trigger automatic deploys.
