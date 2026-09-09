@@ -54,4 +54,23 @@ module.exports = function (app) {
       pathRewrite: { '^/cogs': '/cogs' },
     })
   );
+
+  // PNG tiles, for the same two reasons as the COGs above.
+  //
+  // client/public/tiles/ holds only a placeholder set -- there are no wildfire
+  // or wildlife tiles locally at all -- so with REACT_APP_TILES_BASE_URL empty
+  // those layers 404 against the dev server and silently render nothing. And
+  // the layers that get tinted are fetch()ed rather than <img>-loaded so their
+  // pixels can be read, which makes them CORS-gated like the COGs.
+  //
+  // Requests fall through to client/public/tiles/ first, so a locally generated
+  // tile set still wins over the bucket.
+  app.use(
+    '/tiles',
+    createProxyMiddleware({
+      target: R2_PUBLIC,
+      changeOrigin: true,
+      pathRewrite: { '^/tiles': '/tiles' },
+    })
+  );
 };

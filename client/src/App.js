@@ -29,6 +29,7 @@ import { TILES_BASE_URL, clearcutCogUrl } from './config';
 import useRegionBoundaries from './hooks/useRegionBoundaries';
 import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
 import { summarizeDrawing } from './utils/drawnShapeContext';
+import { getCogCoverage } from './utils/clearcutCogCoverage';
 
 import './styles/map.css';
 import './styles/topmenu.css';
@@ -568,6 +569,24 @@ function App() {
   // Flattens the module/layer/region matrix into plain source descriptors.
   // Mirrors the <RasterTileLayer> mapping in the Leaflet branch below -- kept as
   // data rather than components because MapLibre sources are declared by value.
+  // Which region/years actually have a clearcut COG published. Only wabigoon
+  // does today, so requesting one per selected region gave a 404 per region and
+  // an AggregateError out of MapLibre's tile loader -- and drew nothing, rather
+  // than falling back to the PNG pyramid that does exist for every region.
+  const [cogCoverage, setCogCoverage] = useState(null);
+
+  useEffect(() => {
+    if (!USE_MAPLIBRE || !USE_COG_CLEARCUT || rasterRegions.length === 0) {
+      setCogCoverage(null);
+      return undefined;
+    }
+    let cancelled = false;
+    const years = [...new Set(MODULES.map((m) => moduleYears[m.id] || selectedYear))];
+    getCogCoverage(rasterRegions.map((region) => ({ region, years })))
+      .then((covered) => { if (!cancelled) setCogCoverage(covered); });
+    return () => { cancelled = true; };
+  }, [rasterRegions, moduleYears, selectedYear]);
+
   const maplibreLayers = useMemo(() => {
     if (!USE_MAPLIBRE) return { rasterLayers: [], cogLayers: [] };
 
@@ -582,7 +601,13 @@ function App() {
         const moduleYear = moduleYears[module.id] || selectedYear;
 
         rasterRegions.forEach((region) => {
-          const cogUrl = USE_COG_CLEARCUT ? clearcutCogUrl(layer.id, region, moduleYear) : null;
+          // Until the probe resolves, cogCoverage is null and no COG is used --
+          // the PNG path renders meanwhile, which is the better thing to show
+          // while waiting and the only thing to show if no COG exists.
+          const hasCog = cogCoverage?.has(`${region}_${moduleYear}`);
+          const cogUrl = USE_COG_CLEARCUT && hasCog
+            ? clearcutCogUrl(layer.id, region, moduleYear)
+            : null;
           if (cogUrl) {
             // color carries the layer's identity, not the class's: accumulated and
             // annual are both class 2 in the raster, so without it they'd paint the
@@ -613,7 +638,7 @@ function App() {
     });
 
     return { rasterLayers, cogLayers };
-  }, [activeLayers, rasterRegions, moduleYears, selectedYear]);
+  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage]);
 
   // What the AI agent needs to answer "what's in here" across every layer the
   // user has switched on, not just the module currently in front. Names rather
