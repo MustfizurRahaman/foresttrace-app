@@ -506,10 +506,6 @@ function App() {
     return fireYears.length > 0 ? fireYears : declared;
   }, [fireYears]);
 
-  const availableYearsForPanel = selectedModule?.id === 'wildfire'
-    ? wildfireYearOptions
-    : selectedModule?.temporalOptions?.availableYears;
-
   // Stops on the timeline: the union of every year any ACTIVE layer can show,
   // not just the selected module's. The control moves all of them, so it has to
   // offer every year one of them has -- otherwise switching modules would
