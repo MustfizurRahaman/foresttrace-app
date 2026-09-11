@@ -6,6 +6,7 @@ function ModulePanel({
   // onYearChange and availableYears moved to <MapTimeline> with the control.
   yearRange = [2015, 2024],
   basemapSynced,
+  activeLayers = [],
 }) {
   if (!module) {
     return (
@@ -21,11 +22,22 @@ function ModulePanel({
   // caveat about the year, which only makes sense beside the module's data.
   const showYearNote = yearRange && yearRange.length === 2 && basemapSynced === false;
 
+  // A layer can rename the panel headline while it is the only such layer
+  // active -- the Wildlife module hosts several species, so the panel names the
+  // species. Opt-in via panelTitle, so modules without it are unaffected.
+  const named = (module.layers || []).filter(
+    (layer) => layer.panelTitle && activeLayers.includes(layer.id),
+  );
+  const heading = named.length === 1 ? named[0].panelTitle : module.name;
+  const headingIcon = named.length === 1
+    ? (named[0].panelIcon || module.icon)
+    : module.icon;
+
   return (
     <div className="module-panel">
       <div className="module-header">
-        <h2>{module.name}</h2>
-        {module.icon && <span className="module-icon">{module.icon}</span>}
+        <h2>{heading}</h2>
+        {headingIcon && <span className="module-icon">{headingIcon}</span>}
       </div>
       <div className="module-content">
         {showYearNote && (

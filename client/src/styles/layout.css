@@ -538,6 +538,86 @@ body.dark-mode .resize-handle--active::after {
   background: #8c1d00;
 }
 
+/* Caribou core-patch size ramp.
+   A horizontal colour bar rather than a stacked list of swatches, because the
+   four bins are an ordered progression (small fragments -> large intact core)
+   and a bar shows that ordering the way a list does not. */
+.habitat-ramp {
+  margin-top: 4px;
+}
+
+.habitat-ramp-bar {
+  height: 14px;
+  border-radius: 3px;
+  /* Viridis ends on a bright yellow that would otherwise bleed into a light
+     panel, so the bar carries its own outline at both ends. */
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+/* Ticks are absolutely positioned because the labelled classes fall at uneven
+   points along the ramp (0%, 39%, 61%, 78%, 100%) — patch-area classes are
+   roughly log-spaced, so equal flex columns would put every label in the wrong
+   place. */
+.habitat-ramp-ticks {
+  position: relative;
+  height: 13px;
+  margin-top: 3px;
+}
+
+.habitat-ramp-ticks span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  white-space: nowrap;
+  opacity: 0.7;
+}
+
+/* The end ticks would overhang the panel if they stayed centred on their mark. */
+.habitat-ramp-ticks span[data-edge='start'] {
+  transform: none;
+}
+
+.habitat-ramp-ticks span[data-edge='end'] {
+  transform: translateX(-100%);
+}
+
+/* Share-of-habitat rows: the four coarse groupings, kept visually distinct from
+   the ramp above so they don't read as the map's colour scheme. */
+.habitat-shares {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.habitat-shares span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.habitat-shares i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.habitat-shares em {
+  font-style: normal;
+  opacity: 0.75;
+}
+
+.habitat-shares strong {
+  margin-left: auto;
+  font-weight: 600;
+}
+
+body.dark-mode .habitat-ramp-bar {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
 .legend-gradient {
   margin-top: 8px;
 }
@@ -1195,3 +1275,177 @@ body.dark-mode .basemap-warning {
 }
 
 
+
+
+/* Sliding toggle. Built on a real <input type=checkbox> that is visually hidden
+   rather than a div, so label association, keyboard focus and :checked all work
+   without JS. Greens match the .module-option checkbox. */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: #c9ccc9;
+  transition: background 0.18s ease;
+}
+
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.18s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: #2f8f5b;
+}
+
+.switch input:checked + .switch-track::after {
+  transform: translateX(14px);
+}
+
+/* Focus has to be visible on the track, since the input itself is hidden. */
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid #2f8f5b;
+  outline-offset: 2px;
+}
+
+body.dark-mode .switch {
+  color: #d6d6d6;
+}
+
+body.dark-mode .switch-track {
+  background: #4a4a4a;
+}
+
+body.dark-mode .switch input:checked + .switch-track {
+  background: #9fdcb9;
+}
+
+body.dark-mode .switch-track::after {
+  background: #1e1e1e;
+}
+
+/* Collapsed by default: seven ranges plus two controls is more than should sit
+   above the charts permanently. */
+.range-dropdown > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  list-style: none;
+}
+
+/* The default disclosure marker is replaced with one that rotates, so the
+   caret sits with the text rather than outside the flex row. */
+.range-dropdown > summary::-webkit-details-marker { display: none; }
+
+.range-dropdown > summary::before {
+  content: '';
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 5px solid currentColor;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s ease;
+}
+
+.range-dropdown[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* Pushes the count to the right edge, away from the label. */
+.range-dropdown > summary > span:first-of-type { margin-right: auto; }
+
+.range-summary-count {
+  font-size: 11px;
+  font-weight: 400;
+  color: #666;
+}
+
+.range-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* Switch to the right edge, swatch and name to the left, so the controls form
+   one scannable column rather than sitting at ragged offsets after labels of
+   different lengths. */
+.range-switch {
+  display: flex;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.range-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.range-switch-all {
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid #ededed;
+  font-weight: 600;
+}
+
+/* Ties the row to the outline drawn on the map, so the switch and the boundary
+   are recognisably the same range. */
+.range-swatch {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--swatch);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+.range-mode-note {
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+body.dark-mode .range-dropdown > summary { color: #e0e0e0; }
+body.dark-mode .range-summary-count { color: #9a9a9a; }
+body.dark-mode .range-panel { border-top-color: #3a3a3a; }
+body.dark-mode .range-switch-all { border-bottom-color: #333; }
+
+/* The dark step of each hue, validated against the dark panel surface. */
+body.dark-mode .range-swatch {
+  background: var(--swatch-dark);
+  border-color: rgba(255, 255, 255, 0.3);
+}

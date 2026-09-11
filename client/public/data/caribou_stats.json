@@ -1,0 +1,4089 @@
+{
+  "abitibiriver": {
+    "2015": {
+      "coreHa": 645930.8,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63682.1,
+        "small": 51184.3,
+        "moderate": 27193.0,
+        "large": 114868.8,
+        "veryLarge": 389002.6
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2016": {
+      "coreHa": 645725.5,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63519.1,
+        "small": 51192.6,
+        "moderate": 27154.9,
+        "large": 114868.3,
+        "veryLarge": 388990.6
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2017": {
+      "coreHa": 645054.9,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63913.5,
+        "small": 51340.2,
+        "moderate": 26453.2,
+        "large": 114636.1,
+        "veryLarge": 388711.9
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2018": {
+      "coreHa": 644475.6,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63768.6,
+        "small": 51215.8,
+        "moderate": 26453.2,
+        "large": 114567.3,
+        "veryLarge": 388470.7
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2019": {
+      "coreHa": 644398.9,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63680.8,
+        "small": 51229.9,
+        "moderate": 26453.0,
+        "large": 114564.6,
+        "veryLarge": 388470.7
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2020": {
+      "coreHa": 642190.5,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 63411.5,
+        "small": 51177.9,
+        "moderate": 26453.0,
+        "large": 112677.5,
+        "veryLarge": 388470.7
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2021": {
+      "coreHa": 626748.9,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 58911.6,
+        "small": 46704.8,
+        "moderate": 25998.0,
+        "large": 109255.6,
+        "veryLarge": 385879.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2022": {
+      "coreHa": 626458.5,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 58817.1,
+        "small": 46582.7,
+        "moderate": 25998.0,
+        "large": 109206.3,
+        "veryLarge": 385854.5
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2023": {
+      "coreHa": 616436.6,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 57633.3,
+        "small": 44080.7,
+        "moderate": 25757.7,
+        "large": 103487.3,
+        "veryLarge": 385477.6
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2024": {
+      "coreHa": 615556.9,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 57676.0,
+        "small": 43454.6,
+        "moderate": 25757.7,
+        "large": 103487.3,
+        "veryLarge": 385181.2
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2025": {
+      "coreHa": 615556.9,
+      "inRangeHa": 3014769.3,
+      "bins": {
+        "subFunctional": 57676.0,
+        "small": 43454.6,
+        "moderate": 25757.7,
+        "large": 103487.3,
+        "veryLarge": 385181.2
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    }
+  },
+  "blackspruce": {
+    "2015": {
+      "coreHa": 16747.5,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8854.9,
+        "small": 4005.3,
+        "moderate": 1493.7,
+        "large": 2393.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2016": {
+      "coreHa": 16743.9,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8852.5,
+        "small": 4005.3,
+        "moderate": 1492.6,
+        "large": 2393.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2017": {
+      "coreHa": 16739.8,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8850.1,
+        "small": 4004.6,
+        "moderate": 1492.5,
+        "large": 2392.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2018": {
+      "coreHa": 16738.6,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8848.9,
+        "small": 4004.6,
+        "moderate": 1492.5,
+        "large": 2392.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2019": {
+      "coreHa": 16713.4,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8823.6,
+        "small": 4004.6,
+        "moderate": 1492.5,
+        "large": 2392.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2020": {
+      "coreHa": 16703.7,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 8814.0,
+        "small": 4004.6,
+        "moderate": 1492.5,
+        "large": 2392.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2021": {
+      "coreHa": 27589.3,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 17382.2,
+        "small": 7146.4,
+        "moderate": 778.4,
+        "large": 2282.4,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2022": {
+      "coreHa": 26360.6,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 17584.4,
+        "small": 6436.2,
+        "moderate": 877.2,
+        "large": 1462.9,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2023": {
+      "coreHa": 26218.5,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 17578.5,
+        "small": 6436.2,
+        "moderate": 741.0,
+        "large": 1462.9,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2024": {
+      "coreHa": 26259.3,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 17612.8,
+        "small": 6442.6,
+        "moderate": 741.0,
+        "large": 1462.9,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2025": {
+      "coreHa": 26261.8,
+      "inRangeHa": 558000.8,
+      "bins": {
+        "subFunctional": 17615.3,
+        "small": 6442.6,
+        "moderate": 741.0,
+        "large": 1462.9,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    }
+  },
+  "caribou": {
+    "2015": {
+      "coreHa": 132618.8,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41772.5,
+        "small": 29796.8,
+        "moderate": 8903.9,
+        "large": 43413.0,
+        "veryLarge": 8732.5
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2016": {
+      "coreHa": 132590.8,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41845.9,
+        "small": 29695.9,
+        "moderate": 8903.9,
+        "large": 43412.5,
+        "veryLarge": 8732.5
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2017": {
+      "coreHa": 132723.8,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 42173.7,
+        "small": 29669.1,
+        "moderate": 8806.5,
+        "large": 43342.4,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2018": {
+      "coreHa": 132590.8,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 42040.7,
+        "small": 29669.1,
+        "moderate": 8806.5,
+        "large": 43342.4,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2019": {
+      "coreHa": 132303.5,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41884.4,
+        "small": 29538.5,
+        "moderate": 8806.5,
+        "large": 43342.0,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2020": {
+      "coreHa": 131819.8,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41832.4,
+        "small": 29538.4,
+        "moderate": 9516.4,
+        "large": 42200.5,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2021": {
+      "coreHa": 130326.2,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41862.3,
+        "small": 30374.9,
+        "moderate": 8806.5,
+        "large": 40550.4,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2022": {
+      "coreHa": 129209.7,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41761.3,
+        "small": 30374.1,
+        "moderate": 9410.6,
+        "large": 38931.6,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2023": {
+      "coreHa": 125294.4,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41548.9,
+        "small": 31836.1,
+        "moderate": 8806.5,
+        "large": 34370.8,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2024": {
+      "coreHa": 125172.4,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41548.7,
+        "small": 31740.8,
+        "moderate": 8806.5,
+        "large": 34344.4,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2025": {
+      "coreHa": 125172.4,
+      "inRangeHa": 709048.0,
+      "bins": {
+        "subFunctional": 41548.7,
+        "small": 31740.8,
+        "moderate": 8806.5,
+        "large": 34344.4,
+        "veryLarge": 8732.1
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    }
+  },
+  "englishriver": {
+    "2015": {
+      "coreHa": 27708.1,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 13468.7,
+        "small": 7437.0,
+        "moderate": 1977.8,
+        "large": 4824.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2016": {
+      "coreHa": 27963.4,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 13591.3,
+        "small": 7557.6,
+        "moderate": 1990.0,
+        "large": 4824.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2017": {
+      "coreHa": 29972.8,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 15308.2,
+        "small": 7348.2,
+        "moderate": 2491.7,
+        "large": 4824.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2018": {
+      "coreHa": 29969.5,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 15305.0,
+        "small": 7348.2,
+        "moderate": 2491.7,
+        "large": 4824.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2019": {
+      "coreHa": 29953.7,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 15389.1,
+        "small": 7248.3,
+        "moderate": 2491.7,
+        "large": 4824.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2020": {
+      "coreHa": 29758.3,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 14978.3,
+        "small": 7047.2,
+        "moderate": 2500.7,
+        "large": 5232.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2021": {
+      "coreHa": 41192.3,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 23116.0,
+        "small": 10303.0,
+        "moderate": 2516.1,
+        "large": 5257.2,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2022": {
+      "coreHa": 41187.6,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 23101.7,
+        "small": 9913.9,
+        "moderate": 2914.7,
+        "large": 5257.2,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2023": {
+      "coreHa": 40885.7,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 22840.6,
+        "small": 9873.2,
+        "moderate": 2914.7,
+        "large": 5257.2,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2024": {
+      "coreHa": 40888.1,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 22843.0,
+        "small": 9873.2,
+        "moderate": 2914.7,
+        "large": 5257.2,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2025": {
+      "coreHa": 40983.0,
+      "inRangeHa": 573520.9,
+      "bins": {
+        "subFunctional": 22937.9,
+        "small": 9873.2,
+        "moderate": 2914.7,
+        "large": 5257.2,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    }
+  },
+  "far_north_central": {
+    "2015": {
+      "coreHa": 113465.3,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50583.0,
+        "small": 20634.3,
+        "moderate": 14650.6,
+        "large": 26682.3,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 113465.3,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50583.0,
+        "small": 20634.3,
+        "moderate": 14650.6,
+        "large": 26682.3,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 113365.6,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50483.6,
+        "small": 20633.9,
+        "moderate": 14650.6,
+        "large": 26682.3,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 113323.6,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50464.2,
+        "small": 20629.5,
+        "moderate": 14650.6,
+        "large": 26664.1,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 113278.5,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50529.5,
+        "small": 20519.1,
+        "moderate": 14650.6,
+        "large": 26664.1,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 113174.9,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 50468.3,
+        "small": 20519.1,
+        "moderate": 14650.6,
+        "large": 26621.7,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 112102.0,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 49883.2,
+        "small": 20607.0,
+        "moderate": 14650.6,
+        "large": 26046.0,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 112102.0,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 49883.2,
+        "small": 20607.0,
+        "moderate": 14650.6,
+        "large": 26046.0,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 111648.2,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 49540.8,
+        "small": 20495.7,
+        "moderate": 14650.6,
+        "large": 26046.0,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 111648.2,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 49540.8,
+        "small": 20495.7,
+        "moderate": 14650.6,
+        "large": 26046.0,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 111648.2,
+      "inRangeHa": 592477.8,
+      "bins": {
+        "subFunctional": 49540.8,
+        "small": 20495.7,
+        "moderate": 14650.6,
+        "large": 26046.0,
+        "veryLarge": 915.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    }
+  },
+  "far_north_east": {
+    "2015": {
+      "coreHa": 189436.6,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 14991.0,
+        "small": 8312.6,
+        "moderate": 5004.3,
+        "large": 21776.8,
+        "veryLarge": 139351.9
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 189404.2,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 14981.3,
+        "small": 8312.6,
+        "moderate": 5004.3,
+        "large": 21776.8,
+        "veryLarge": 139329.3
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 189096.9,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 14944.1,
+        "small": 8312.6,
+        "moderate": 5004.3,
+        "large": 21776.8,
+        "veryLarge": 139059.2
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 188803.6,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 14978.2,
+        "small": 8326.4,
+        "moderate": 4926.1,
+        "large": 21776.8,
+        "veryLarge": 138796.2
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 188728.0,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15117.2,
+        "small": 8168.1,
+        "moderate": 4914.7,
+        "large": 21776.8,
+        "veryLarge": 138751.2
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 188678.0,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15124.4,
+        "small": 8168.1,
+        "moderate": 4914.7,
+        "large": 21769.3,
+        "veryLarge": 138701.4
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 188581.4,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15109.4,
+        "small": 8590.9,
+        "moderate": 5553.8,
+        "large": 20661.5,
+        "veryLarge": 138665.9
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 188497.5,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15101.6,
+        "small": 9342.2,
+        "moderate": 4731.8,
+        "large": 20661.5,
+        "veryLarge": 138660.4
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 188497.5,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15101.6,
+        "small": 9342.2,
+        "moderate": 4731.8,
+        "large": 20661.5,
+        "veryLarge": 138660.4
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 188497.5,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15101.6,
+        "small": 9342.2,
+        "moderate": 4731.8,
+        "large": 20661.5,
+        "veryLarge": 138660.4
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 188497.5,
+      "inRangeHa": 491410.8,
+      "bins": {
+        "subFunctional": 15101.6,
+        "small": 9342.2,
+        "moderate": 4731.8,
+        "large": 20661.5,
+        "veryLarge": 138660.4
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    }
+  },
+  "far_north_west": {
+    "2015": {
+      "coreHa": 2687.3,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2071.8,
+        "small": 615.5,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2016": {
+      "coreHa": 3191.2,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2375.2,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2017": {
+      "coreHa": 3191.2,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2375.2,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2018": {
+      "coreHa": 3191.9,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2375.9,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2019": {
+      "coreHa": 3182.3,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.3,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2020": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2021": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2022": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2023": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2024": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    },
+    "2025": {
+      "coreHa": 3182.0,
+      "inRangeHa": 32962.9,
+      "bins": {
+        "subFunctional": 2366.0,
+        "small": 816.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens"
+      ]
+    }
+  },
+  "gordoncosens": {
+    "2015": {
+      "coreHa": 69708.7,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16814.0,
+        "small": 11196.6,
+        "moderate": 6462.4,
+        "large": 18875.6,
+        "veryLarge": 16360.1
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 69562.6,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16781.9,
+        "small": 11683.3,
+        "moderate": 5861.6,
+        "large": 18875.6,
+        "veryLarge": 16360.1
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 69424.4,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16720.8,
+        "small": 11620.6,
+        "moderate": 5847.2,
+        "large": 18875.6,
+        "veryLarge": 16360.1
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 69305.6,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16758.7,
+        "small": 11470.1,
+        "moderate": 5847.2,
+        "large": 18869.5,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 69242.6,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16726.6,
+        "small": 11439.4,
+        "moderate": 5847.1,
+        "large": 18869.5,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 68903.5,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16429.6,
+        "small": 11438.8,
+        "moderate": 5805.5,
+        "large": 18869.5,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 68554.2,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16371.8,
+        "small": 11813.9,
+        "moderate": 6760.9,
+        "large": 17247.5,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 67838.1,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16281.4,
+        "small": 12143.6,
+        "moderate": 5805.5,
+        "large": 17247.5,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 67493.3,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16242.0,
+        "small": 11840.5,
+        "moderate": 5805.5,
+        "large": 17245.3,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 67493.3,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16242.0,
+        "small": 11840.5,
+        "moderate": 5805.5,
+        "large": 17245.3,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 67493.3,
+      "inRangeHa": 638466.8,
+      "bins": {
+        "subFunctional": 16242.0,
+        "small": 11840.5,
+        "moderate": 5805.5,
+        "large": 17245.3,
+        "veryLarge": 16360.0
+      },
+      "ranges": [
+        "kesagami",
+        "pagwachuan"
+      ]
+    }
+  },
+  "hearst": {
+    "2015": {
+      "coreHa": 72642.0,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27747.1,
+        "small": 18960.7,
+        "moderate": 4393.1,
+        "large": 21541.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 72243.2,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27700.5,
+        "small": 18768.3,
+        "moderate": 4398.4,
+        "large": 21376.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 72121.1,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27674.1,
+        "small": 18673.0,
+        "moderate": 4398.4,
+        "large": 21375.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 71963.5,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27732.6,
+        "small": 18456.8,
+        "moderate": 4398.4,
+        "large": 21375.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 71884.3,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27671.0,
+        "small": 18439.7,
+        "moderate": 4397.9,
+        "large": 21375.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 71037.3,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27504.5,
+        "small": 18345.5,
+        "moderate": 3811.6,
+        "large": 21375.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 70362.9,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 27063.7,
+        "small": 18139.7,
+        "moderate": 3811.6,
+        "large": 21347.9,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 69901.6,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 26713.6,
+        "small": 18100.8,
+        "moderate": 3811.6,
+        "large": 21275.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 68712.8,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 26150.8,
+        "small": 17516.1,
+        "moderate": 3790.3,
+        "large": 21255.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 68712.8,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 26150.8,
+        "small": 17516.1,
+        "moderate": 3790.3,
+        "large": 21255.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 68712.8,
+      "inRangeHa": 762383.0,
+      "bins": {
+        "subFunctional": 26150.8,
+        "small": 17516.1,
+        "moderate": 3790.3,
+        "large": 21255.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    }
+  },
+  "kenogami": {
+    "2015": {
+      "coreHa": 156259.5,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 59357.1,
+        "small": 27533.5,
+        "moderate": 8719.9,
+        "large": 30780.8,
+        "veryLarge": 29868.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 156227.5,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 59335.4,
+        "small": 27530.5,
+        "moderate": 8712.6,
+        "large": 30780.8,
+        "veryLarge": 29868.2
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 156116.3,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 59280.9,
+        "small": 27528.2,
+        "moderate": 8712.6,
+        "large": 30780.8,
+        "veryLarge": 29813.8
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 156093.6,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 59260.3,
+        "small": 27526.0,
+        "moderate": 8712.6,
+        "large": 30780.8,
+        "veryLarge": 29813.8
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 156009.0,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 59195.3,
+        "small": 27506.8,
+        "moderate": 8712.6,
+        "large": 30780.4,
+        "veryLarge": 29813.8
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 154339.5,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 58434.1,
+        "small": 27095.6,
+        "moderate": 8712.6,
+        "large": 40302.8,
+        "veryLarge": 19794.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 151034.0,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 57769.6,
+        "small": 27223.3,
+        "moderate": 7174.9,
+        "large": 39726.0,
+        "veryLarge": 19140.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 150366.8,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 57104.6,
+        "small": 27221.0,
+        "moderate": 7174.9,
+        "large": 39726.0,
+        "veryLarge": 19140.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 149594.8,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 56708.9,
+        "small": 26844.7,
+        "moderate": 7174.9,
+        "large": 39726.0,
+        "veryLarge": 19140.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 149594.8,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 56708.9,
+        "small": 26844.7,
+        "moderate": 7174.9,
+        "large": 39726.0,
+        "veryLarge": 19140.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 149597.0,
+      "inRangeHa": 1407590.7,
+      "bins": {
+        "subFunctional": 56711.2,
+        "small": 26844.7,
+        "moderate": 7174.9,
+        "large": 39726.0,
+        "veryLarge": 19140.3
+      },
+      "ranges": [
+        "nipigon",
+        "pagwachuan"
+      ]
+    }
+  },
+  "kenora": {
+    "2015": {
+      "coreHa": 2566.3,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2566.3,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2016": {
+      "coreHa": 2565.9,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2565.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2017": {
+      "coreHa": 2565.9,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2565.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2018": {
+      "coreHa": 2565.9,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2565.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2019": {
+      "coreHa": 2563.9,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2563.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2020": {
+      "coreHa": 2550.6,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 2550.6,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2021": {
+      "coreHa": 411.5,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 411.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2022": {
+      "coreHa": 411.5,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 411.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2023": {
+      "coreHa": 411.5,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 411.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2024": {
+      "coreHa": 411.7,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 411.7,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    },
+    "2025": {
+      "coreHa": 411.7,
+      "inRangeHa": 104596.1,
+      "bins": {
+        "subFunctional": 411.7,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "sydney"
+      ]
+    }
+  },
+  "lacseul": {
+    "2015": {
+      "coreHa": 97268.5,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42674.7,
+        "small": 25167.1,
+        "moderate": 9514.2,
+        "large": 19912.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2016": {
+      "coreHa": 97214.7,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42751.1,
+        "small": 25036.8,
+        "moderate": 9514.2,
+        "large": 19912.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2017": {
+      "coreHa": 98215.6,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 43185.7,
+        "small": 25594.2,
+        "moderate": 9523.2,
+        "large": 19912.6,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2018": {
+      "coreHa": 97997.5,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 43135.1,
+        "small": 25583.2,
+        "moderate": 9519.2,
+        "large": 19760.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2019": {
+      "coreHa": 97912.6,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 43102.2,
+        "small": 25579.9,
+        "moderate": 9519.2,
+        "large": 19711.3,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2020": {
+      "coreHa": 98670.2,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 43389.8,
+        "small": 25902.5,
+        "moderate": 9666.9,
+        "large": 19711.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2021": {
+      "coreHa": 97784.1,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42919.0,
+        "small": 25487.6,
+        "moderate": 9666.4,
+        "large": 19711.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2022": {
+      "coreHa": 97212.1,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42381.5,
+        "small": 25453.2,
+        "moderate": 9666.4,
+        "large": 19711.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2023": {
+      "coreHa": 96638.9,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42189.5,
+        "small": 25453.2,
+        "moderate": 9666.4,
+        "large": 19329.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2024": {
+      "coreHa": 96592.4,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42156.3,
+        "small": 25453.2,
+        "moderate": 9653.2,
+        "large": 19329.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    },
+    "2025": {
+      "coreHa": 96592.4,
+      "inRangeHa": 970444.4,
+      "bins": {
+        "subFunctional": 42156.3,
+        "small": 25453.2,
+        "moderate": 9653.2,
+        "large": 19329.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "brightsand",
+        "churchill"
+      ]
+    }
+  },
+  "lakenipigon": {
+    "2015": {
+      "coreHa": 74319.0,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47362.5,
+        "small": 12102.1,
+        "moderate": 3035.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2016": {
+      "coreHa": 74279.2,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47323.0,
+        "small": 12101.8,
+        "moderate": 3035.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2017": {
+      "coreHa": 74273.1,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47316.9,
+        "small": 12101.8,
+        "moderate": 3035.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2018": {
+      "coreHa": 74252.8,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47416.4,
+        "small": 11982.0,
+        "moderate": 3035.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2019": {
+      "coreHa": 74239.8,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47404.0,
+        "small": 11982.0,
+        "moderate": 3034.9,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2020": {
+      "coreHa": 73905.9,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 47116.1,
+        "small": 11938.2,
+        "moderate": 3032.6,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2021": {
+      "coreHa": 72768.1,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 46150.5,
+        "small": 11766.2,
+        "moderate": 3032.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2022": {
+      "coreHa": 71158.6,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 45010.4,
+        "small": 11296.8,
+        "moderate": 3032.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2023": {
+      "coreHa": 69532.0,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 44140.1,
+        "small": 10540.5,
+        "moderate": 3032.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2024": {
+      "coreHa": 69532.0,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 44140.1,
+        "small": 10540.5,
+        "moderate": 3032.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2025": {
+      "coreHa": 69532.0,
+      "inRangeHa": 1191731.8,
+      "bins": {
+        "subFunctional": 44140.1,
+        "small": 10540.5,
+        "moderate": 3032.4,
+        "large": 8418.1,
+        "veryLarge": 3400.8
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    }
+  },
+  "nagagami": {
+    "2015": {
+      "coreHa": 8467.5,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 968.8,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 8464.8,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 966.1,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 8464.4,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 965.8,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 8464.3,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 965.8,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 8463.3,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 964.8,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 8427.4,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 928.9,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 8427.4,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 928.9,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6609.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 8279.5,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 1000.1,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6390.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 8279.5,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 1000.1,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6390.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 8279.5,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 1000.1,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6390.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 8279.5,
+      "inRangeHa": 41514.1,
+      "bins": {
+        "subFunctional": 1000.1,
+        "small": 337.7,
+        "moderate": 551.2,
+        "large": 6390.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    }
+  },
+  "ogoki": {
+    "2015": {
+      "coreHa": 63278.6,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53750.9,
+        "small": 7467.8,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2016": {
+      "coreHa": 63249.5,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53784.4,
+        "small": 7405.2,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2017": {
+      "coreHa": 63200.2,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53758.0,
+        "small": 7382.2,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2018": {
+      "coreHa": 63157.0,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53714.9,
+        "small": 7382.2,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2019": {
+      "coreHa": 63138.2,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53696.1,
+        "small": 7382.2,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2020": {
+      "coreHa": 62996.3,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53554.1,
+        "small": 7382.2,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2021": {
+      "coreHa": 62778.9,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53486.3,
+        "small": 7232.7,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2022": {
+      "coreHa": 62745.7,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 53453.1,
+        "small": 7232.7,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2023": {
+      "coreHa": 60343.5,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 51158.2,
+        "small": 7125.3,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2024": {
+      "coreHa": 60343.5,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 51158.2,
+        "small": 7125.3,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    },
+    "2025": {
+      "coreHa": 60343.5,
+      "inRangeHa": 1073835.1,
+      "bins": {
+        "subFunctional": 51158.2,
+        "small": 7125.3,
+        "moderate": 2059.9,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "nipigon"
+      ]
+    }
+  },
+  "pic": {
+    "2015": {
+      "coreHa": 15335.4,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5597.9,
+        "small": 3348.6,
+        "moderate": 569.3,
+        "large": 5819.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2016": {
+      "coreHa": 15320.1,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5582.9,
+        "small": 3348.4,
+        "moderate": 569.3,
+        "large": 5819.5,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2017": {
+      "coreHa": 15315.8,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5578.7,
+        "small": 3348.4,
+        "moderate": 569.3,
+        "large": 5819.4,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2018": {
+      "coreHa": 15311.1,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5574.0,
+        "small": 3348.4,
+        "moderate": 569.3,
+        "large": 5819.4,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2019": {
+      "coreHa": 15298.5,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5566.7,
+        "small": 3346.4,
+        "moderate": 569.3,
+        "large": 5816.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2020": {
+      "coreHa": 14953.9,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5520.2,
+        "small": 3295.3,
+        "moderate": 569.3,
+        "large": 5569.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2021": {
+      "coreHa": 14787.4,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5354.1,
+        "small": 3295.3,
+        "moderate": 569.3,
+        "large": 5568.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2022": {
+      "coreHa": 14558.6,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 5301.9,
+        "small": 3118.7,
+        "moderate": 569.3,
+        "large": 5568.7,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2023": {
+      "coreHa": 14013.4,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 4984.6,
+        "small": 3009.8,
+        "moderate": 569.3,
+        "large": 5449.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2024": {
+      "coreHa": 14013.4,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 4984.6,
+        "small": 3009.8,
+        "moderate": 569.3,
+        "large": 5449.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    },
+    "2025": {
+      "coreHa": 14013.4,
+      "inRangeHa": 217772.1,
+      "bins": {
+        "subFunctional": 4984.6,
+        "small": 3009.8,
+        "moderate": 569.3,
+        "large": 5449.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "pagwachuan"
+      ]
+    }
+  },
+  "redlake": {
+    "2015": {
+      "coreHa": 7359.0,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4950.0,
+        "small": 1317.3,
+        "moderate": 609.9,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2016": {
+      "coreHa": 7359.0,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4950.0,
+        "small": 1317.3,
+        "moderate": 609.9,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2017": {
+      "coreHa": 7358.8,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4949.8,
+        "small": 1317.3,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2018": {
+      "coreHa": 7355.1,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4946.1,
+        "small": 1317.3,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2019": {
+      "coreHa": 7354.6,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4945.9,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2020": {
+      "coreHa": 7351.8,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4943.1,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2021": {
+      "coreHa": 6936.5,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4527.7,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2022": {
+      "coreHa": 6932.8,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4524.0,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2023": {
+      "coreHa": 6860.4,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4451.7,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2024": {
+      "coreHa": 6860.8,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4452.0,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2025": {
+      "coreHa": 6861.3,
+      "inRangeHa": 288576.4,
+      "bins": {
+        "subFunctional": 4452.6,
+        "small": 1317.2,
+        "moderate": 609.8,
+        "large": 481.8,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    }
+  },
+  "romeomalette": {
+    "2015": {
+      "coreHa": 2634.3,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 474.9,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2016": {
+      "coreHa": 2634.3,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 474.9,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2017": {
+      "coreHa": 2634.3,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 474.9,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2018": {
+      "coreHa": 2632.8,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 473.4,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2019": {
+      "coreHa": 2632.8,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 473.4,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2020": {
+      "coreHa": 2632.8,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 473.4,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2021": {
+      "coreHa": 2632.8,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 473.4,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2022": {
+      "coreHa": 2620.0,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 460.6,
+        "small": 424.3,
+        "moderate": 518.3,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2023": {
+      "coreHa": 2573.9,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 468.6,
+        "small": 888.5,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2024": {
+      "coreHa": 2573.9,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 468.6,
+        "small": 888.5,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2025": {
+      "coreHa": 2573.9,
+      "inRangeHa": 32176.6,
+      "bins": {
+        "subFunctional": 468.6,
+        "small": 888.5,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 1216.8
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    }
+  },
+  "timiskaming": {
+    "2015": {
+      "coreHa": 15.4,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.4,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2016": {
+      "coreHa": 15.4,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.4,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2017": {
+      "coreHa": 15.4,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.4,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2018": {
+      "coreHa": 15.4,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.4,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2019": {
+      "coreHa": 15.4,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.4,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2020": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2021": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2022": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2023": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2024": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    },
+    "2025": {
+      "coreHa": 15.2,
+      "inRangeHa": 1390.5,
+      "bins": {
+        "subFunctional": 15.2,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "kesagami"
+      ]
+    }
+  },
+  "troutlake": {
+    "2015": {
+      "coreHa": 120424.7,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 44051.3,
+        "small": 28880.3,
+        "moderate": 11856.3,
+        "large": 24529.3,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2016": {
+      "coreHa": 120016.2,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 43861.8,
+        "small": 28770.2,
+        "moderate": 11764.0,
+        "large": 24512.8,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2017": {
+      "coreHa": 120554.4,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 44253.0,
+        "small": 28283.5,
+        "moderate": 12397.8,
+        "large": 24512.7,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2018": {
+      "coreHa": 120437.0,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 44203.9,
+        "small": 28219.4,
+        "moderate": 12397.8,
+        "large": 24508.4,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2019": {
+      "coreHa": 120039.6,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 43915.1,
+        "small": 28206.9,
+        "moderate": 12397.8,
+        "large": 24412.3,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2020": {
+      "coreHa": 119486.4,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 43437.4,
+        "small": 28131.5,
+        "moderate": 12397.8,
+        "large": 24412.3,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2021": {
+      "coreHa": 116973.0,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 42579.2,
+        "small": 27255.5,
+        "moderate": 11799.4,
+        "large": 24231.5,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2022": {
+      "coreHa": 114253.8,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 41974.1,
+        "small": 25143.3,
+        "moderate": 11797.5,
+        "large": 24231.5,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2023": {
+      "coreHa": 104022.1,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 41234.9,
+        "small": 24886.8,
+        "moderate": 13250.2,
+        "large": 13542.7,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2024": {
+      "coreHa": 103977.6,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 41315.0,
+        "small": 24762.2,
+        "moderate": 13250.2,
+        "large": 13542.7,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2025": {
+      "coreHa": 103995.4,
+      "inRangeHa": 1016893.3,
+      "bins": {
+        "subFunctional": 41332.9,
+        "small": 24762.2,
+        "moderate": 13250.2,
+        "large": 13542.7,
+        "veryLarge": 11107.4
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    }
+  },
+  "wabakimi_provincial_park": {
+    "2015": {
+      "coreHa": 173681.7,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 78142.9,
+        "small": 34817.8,
+        "moderate": 14418.2,
+        "large": 44493.1,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2016": {
+      "coreHa": 173647.4,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 78128.2,
+        "small": 34798.1,
+        "moderate": 14418.2,
+        "large": 44493.1,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2017": {
+      "coreHa": 174994.6,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79444.3,
+        "small": 34999.2,
+        "moderate": 14413.8,
+        "large": 44327.6,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2018": {
+      "coreHa": 174942.0,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79489.2,
+        "small": 34999.2,
+        "moderate": 14413.8,
+        "large": 44230.1,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2019": {
+      "coreHa": 174944.5,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79483.3,
+        "small": 34999.2,
+        "moderate": 14429.1,
+        "large": 44223.2,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2020": {
+      "coreHa": 174839.3,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79400.8,
+        "small": 34976.6,
+        "moderate": 14429.0,
+        "large": 44223.2,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2021": {
+      "coreHa": 174818.9,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79380.4,
+        "small": 34976.6,
+        "moderate": 14429.0,
+        "large": 44223.2,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2022": {
+      "coreHa": 174877.2,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 79406.0,
+        "small": 35009.3,
+        "moderate": 14429.0,
+        "large": 44223.2,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2023": {
+      "coreHa": 147328.8,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 71628.8,
+        "small": 30358.0,
+        "moderate": 12433.6,
+        "large": 31098.8,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2024": {
+      "coreHa": 147328.8,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 71628.8,
+        "small": 30358.0,
+        "moderate": 12433.6,
+        "large": 31098.8,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    },
+    "2025": {
+      "coreHa": 147339.8,
+      "inRangeHa": 880363.8,
+      "bins": {
+        "subFunctional": 71628.8,
+        "small": 30358.0,
+        "moderate": 12433.6,
+        "large": 31109.8,
+        "veryLarge": 1809.7
+      },
+      "ranges": [
+        "brightsand",
+        "nipigon"
+      ]
+    }
+  },
+  "wabigoon": {
+    "2015": {
+      "coreHa": 383.1,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.1,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2016": {
+      "coreHa": 383.1,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.1,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2017": {
+      "coreHa": 383.5,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2018": {
+      "coreHa": 383.5,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2019": {
+      "coreHa": 383.5,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2020": {
+      "coreHa": 383.5,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2021": {
+      "coreHa": 383.5,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 383.5,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2022": {
+      "coreHa": 382.9,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 382.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2023": {
+      "coreHa": 382.9,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 382.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2024": {
+      "coreHa": 382.9,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 382.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    },
+    "2025": {
+      "coreHa": 382.9,
+      "inRangeHa": 20109.5,
+      "bins": {
+        "subFunctional": 382.9,
+        "small": 0.0,
+        "moderate": 0.0,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "churchill"
+      ]
+    }
+  },
+  "whiskeyjack": {
+    "2015": {
+      "coreHa": 3969.4,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2137.6,
+        "small": 1065.1,
+        "moderate": 766.7,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2016": {
+      "coreHa": 3968.5,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2136.7,
+        "small": 1065.1,
+        "moderate": 766.7,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2017": {
+      "coreHa": 4192.2,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2354.9,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2018": {
+      "coreHa": 4191.8,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2354.6,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2019": {
+      "coreHa": 4191.6,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2354.3,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2020": {
+      "coreHa": 4190.7,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2353.4,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2021": {
+      "coreHa": 4532.3,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2695.0,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2022": {
+      "coreHa": 4527.9,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2690.6,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2023": {
+      "coreHa": 4527.9,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2690.6,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2024": {
+      "coreHa": 4775.0,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2937.8,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    },
+    "2025": {
+      "coreHa": 4775.0,
+      "inRangeHa": 249857.5,
+      "bins": {
+        "subFunctional": 2937.8,
+        "small": 1065.1,
+        "moderate": 772.2,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill",
+        "sydney"
+      ]
+    }
+  },
+  "whitefeather": {
+    "2015": {
+      "coreHa": 118838.0,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 82603.8,
+        "small": 29670.4,
+        "moderate": 4447.7,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2016": {
+      "coreHa": 118753.6,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 82521.4,
+        "small": 29668.4,
+        "moderate": 4447.7,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2017": {
+      "coreHa": 120262.1,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 83988.4,
+        "small": 29689.5,
+        "moderate": 4468.1,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2018": {
+      "coreHa": 120296.3,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 84022.9,
+        "small": 29689.2,
+        "moderate": 4468.1,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2019": {
+      "coreHa": 120092.4,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 83820.2,
+        "small": 29687.9,
+        "moderate": 4468.1,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2020": {
+      "coreHa": 119907.6,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 83646.9,
+        "small": 29676.5,
+        "moderate": 4468.1,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2021": {
+      "coreHa": 103800.5,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 72840.4,
+        "small": 25752.4,
+        "moderate": 3091.6,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2022": {
+      "coreHa": 103280.7,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 73010.0,
+        "small": 25063.0,
+        "moderate": 3091.6,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2023": {
+      "coreHa": 103273.7,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 73003.1,
+        "small": 25063.0,
+        "moderate": 3091.6,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2024": {
+      "coreHa": 103385.8,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 73115.1,
+        "small": 25063.0,
+        "moderate": 3091.6,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    },
+    "2025": {
+      "coreHa": 103385.8,
+      "inRangeHa": 1154922.5,
+      "bins": {
+        "subFunctional": 73115.1,
+        "small": 25063.0,
+        "moderate": 3091.6,
+        "large": 2116.1,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "churchill"
+      ]
+    }
+  },
+  "woodland_caribou_provincial_park": {
+    "2015": {
+      "coreHa": 15627.4,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12741.9,
+        "small": 1951.7,
+        "moderate": 933.8,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2016": {
+      "coreHa": 15625.2,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12739.7,
+        "small": 1951.7,
+        "moderate": 933.8,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2017": {
+      "coreHa": 15612.4,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12728.9,
+        "small": 1951.7,
+        "moderate": 931.8,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2018": {
+      "coreHa": 15611.7,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12728.2,
+        "small": 1951.7,
+        "moderate": 931.8,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2019": {
+      "coreHa": 15602.3,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12719.2,
+        "small": 1951.7,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2020": {
+      "coreHa": 15596.1,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 12712.9,
+        "small": 1951.7,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2021": {
+      "coreHa": 5559.6,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 3651.8,
+        "small": 976.4,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2022": {
+      "coreHa": 5559.6,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 3651.8,
+        "small": 976.4,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2023": {
+      "coreHa": 5559.6,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 3651.8,
+        "small": 976.4,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2024": {
+      "coreHa": 5588.3,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 3680.5,
+        "small": 976.4,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    },
+    "2025": {
+      "coreHa": 5588.3,
+      "inRangeHa": 463752.9,
+      "bins": {
+        "subFunctional": 3680.5,
+        "small": 976.4,
+        "moderate": 931.4,
+        "large": 0.0,
+        "veryLarge": 0.0
+      },
+      "ranges": [
+        "berens",
+        "sydney"
+      ]
+    }
+  }
+}

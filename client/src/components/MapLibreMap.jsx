@@ -3,7 +3,8 @@ import Map, { Source, Layer, NavigationControl, useMap } from 'react-map-gl/mapl
 import maplibregl from 'maplibre-gl';
 import { cogProtocol, setColorFunction } from '@geomatico/maplibre-cog-protocol';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { buildClassColorFunction, DEFAULT_VISIBLE_CLASSES, CLEARCUT_CLASS_ID } from '../utils/clearcutClasses';
+import { buildClassColorFunction } from '../utils/rasterClasses';
+import { CLEARCUT_CLASSES, DEFAULT_VISIBLE_CLASSES, CLEARCUT_CLASS_ID } from '../utils/clearcutClasses';
 import { ensureTintedProtocol, onTintActivity } from '../utils/tintedTileProtocol';
 
 // COG support is a URL protocol handler, not a layer type: once registered,
@@ -515,6 +516,7 @@ function MapLibreMap({
   satelliteAttribution,
   lightBasemap,
   regionsData = null,
+  rangeBoundaries = null,
   rasterLayers = [],
   cogLayers = [],
   rasterOpacity = 0.5,
@@ -561,11 +563,32 @@ function MapLibreMap({
   const cogSignature = cogLayers.map((l) => `${l.url}:${l.color || ''}`).join('|');
   useMemo(() => {
     cogLayers.forEach((layer) => {
+      // Each layer brings its own class table. Clearcut's 6-class U-Net labels and
+      // wildfire's single burned class are unrelated vocabularies that happen to
+      // share this renderer, so defaulting to one of them would let a layer paint
+      // by another module's numbering.
+      const palette = layer.palette || CLEARCUT_CLASSES;
       const visibleClasses = layer.visibleClasses || DEFAULT_VISIBLE_CLASSES;
-      const overrides = layer.color ? { [CLEARCUT_CLASS_ID]: layer.color } : {};
+      // Which class the layer's colour overrides. Clearcut paints class 2,
+      // wildfire class 1, so this cannot be a literal or the override lands on a
+      // class the raster never contains and the layer renders in the palette's
+      // own colour instead of its own.
+      //
+      // An explicit null means "override nothing": caribou's five-step ramp IS
+      // the information, so repainting one of its classes would destroy the
+      // reading. Undefined still means the clearcut default.
+      const colorClass = layer.colorClass === undefined ? CLEARCUT_CLASS_ID : layer.colorClass;
+      const overrides = (layer.color && colorClass !== null)
+        ? { [colorClass]: layer.color }
+        : {};
       setColorFunction(
         layer.url,
-        buildClassColorFunction(visibleClasses, 255, overrides),
+        buildClassColorFunction({
+          palette,
+          visibleClasses,
+          alpha: 255,
+          colorOverrides: overrides,
+        }),
       );
     });
     // cogSignature stands in for the layer list: the array identity changes on
@@ -622,6 +645,28 @@ function MapLibreMap({
             paint={{
               'line-color': basemapMode === 'satellite' ? '#ffffff' : '#333333',
               'line-width': 1.5,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* Caribou range outlines. Declared AFTER the raster sources so MapLibre
+          paints them above the habitat they annotate -- layers render in the
+          order they are added, and an outline under the raster is invisible.
+          Line-only, no fill, for the same reason.
+
+          Colour is data-driven off a property resolved in App: MapLibre has no
+          per-feature style callback, so seven ranges in one source cannot be
+          styled by a function the way Leaflet's onEachFeature does it. */}
+      {rangeBoundaries && (
+        <Source id="caribou-ranges" type="geojson" data={rangeBoundaries}>
+          <Layer
+            id="caribou-ranges-outline"
+            type="line"
+            paint={{
+              'line-color': ['coalesce', ['get', '_lineColor'], '#333333'],
+              'line-width': 2,
+              'line-opacity': 1,
             }}
           />
         </Source>

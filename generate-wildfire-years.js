@@ -10,12 +10,19 @@
  * years 2010-2025 for every region and most of them render nothing, which
  * looks like a broken layer rather than "no fire that year".
  *
- * The NBAC tile pyramid is produced outside this repo, so its location has to
- * be supplied — there is no default. Re-run whenever tiles are added.
+ * The NBAC output is produced outside this repo, so its location has to be
+ * supplied — there is no default. Re-run whenever the source changes.
+ *
+ * Accepts either layout, because the wildfire layer is mid-migration:
+ *   PNG pyramid   <region>_<year>/{z}/{x}/{y}.png     (directories)
+ *   COG           <region>_<year>.tif                 (files)
+ * Reading the COGs matters once they are the layer's source — a manifest built
+ * from the old tile folders describes a set the map no longer draws from, and a
+ * region-year missing from it is simply unreachable in the year slider.
  *
  * Usage:
- *   node generate-wildfire-years.js <tilesDir>
- *   WILDFIRE_TILES_DIR=<tilesDir> node generate-wildfire-years.js
+ *   node generate-wildfire-years.js <dir>
+ *   WILDFIRE_TILES_DIR=<dir> node generate-wildfire-years.js
  */
 
 const fs = require('fs');
@@ -30,7 +37,8 @@ if (!tilesDir) {
   console.error('Usage:');
   console.error('  node generate-wildfire-years.js <tilesDir>');
   console.error('  WILDFIRE_TILES_DIR=<tilesDir> node generate-wildfire-years.js\n');
-  console.error('  <tilesDir>  folder containing <region>_<year>/{z}/{x}/{y}.png');
+  console.error('  <dir>  folder of <region>_<year>.tif COGs,');
+  console.error('         or of <region>_<year>/{z}/{x}/{y}.png tile pyramids');
   process.exit(1);
 }
 
@@ -41,12 +49,22 @@ if (!fs.existsSync(tilesDir)) {
 
 const byRegion = new Map();
 
-for (const entry of fs.readdirSync(tilesDir)) {
-  if (!fs.statSync(path.join(tilesDir, entry)).isDirectory()) continue;
+// A COG directory holds files, a PNG pyramid holds directories. Decide from what
+// is actually there rather than from a flag, so the same command works either way.
+const entries = fs.readdirSync(tilesDir, { withFileTypes: true });
+const cogs = entries.filter((e) => e.isFile() && /\.tiff?$/i.test(e.name));
+const mode = cogs.length > 0 ? 'cog' : 'png';
+const candidates = mode === 'cog' ? cogs : entries.filter((e) => e.isDirectory());
 
-  const match = entry.match(/^(.*)_(\d{4})$/);
+console.log(`Reading ${mode === 'cog' ? 'COGs' : 'tile folders'} from ${tilesDir}`);
+
+for (const entry of candidates) {
+  // Strip the extension in COG mode so both layouts share one <region>_<year> parse.
+  const stem = mode === 'cog' ? entry.name.replace(/\.tiff?$/i, '') : entry.name;
+
+  const match = stem.match(/^(.*)_(\d{4})$/);
   if (!match) {
-    console.warn(`  skipping unrecognised folder name: ${entry}`);
+    console.warn(`  skipping unrecognised name: ${entry.name}`);
     continue;
   }
 

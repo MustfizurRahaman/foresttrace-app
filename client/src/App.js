@@ -21,12 +21,19 @@ import MapTimeline from './components/MapTimeline';
 import ClearcutDetection from './modules/ClearcutDetection';
 import BiomassModule from './modules/BiomassModule';
 import WildfireModule from './modules/WildfireModule';
+import CaribouHabitatModule from './modules/CaribouHabitatModule';
 import RasterTileLayer from './components/RasterTileLayer';
 import { handleLocateUser } from './utils/mapUtils';
 import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR, getRegionsWithClearcutData } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
-import { TILES_BASE_URL, clearcutCogUrl } from './config';
+import { WILDFIRE_CLASSES, WILDFIRE_CLASS_ID, WILDFIRE_VISIBLE_CLASSES } from './utils/wildfireClasses';
+import { CARIBOU_CLASSES, CARIBOU_VISIBLE_CLASSES } from './utils/caribouClasses';
+import { getFmusForRanges, rangeColor, CARIBOU_RANGES } from './utils/caribouStats';
+import {
+  TILES_BASE_URL, DATA_BASE_URL,
+  cogPrefixForLayer, coveragePrefixForLayer, cogUrlForPrefix,
+} from './config';
 import useRegionBoundaries from './hooks/useRegionBoundaries';
 import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
 import { summarizeDrawing } from './utils/drawnShapeContext';
@@ -93,10 +100,14 @@ const center = [49.80318325874751, -92.8087780822145];
 //   REACT_APP_USE_MAPLIBRE=true npm start
 const USE_MAPLIBRE = process.env.REACT_APP_USE_MAPLIBRE === 'true';
 
-// Serve clearcut from COGs rather than PNG pyramids. Independent of the renderer
-// flag so the two can be evaluated separately -- though COGs only render on
-// MapLibre, so this does nothing while USE_MAPLIBRE is off.
-const USE_COG_CLEARCUT = process.env.REACT_APP_USE_COG_CLEARCUT === 'true';
+// Serve COG-backed layers from COGs rather than PNG pyramids. Independent of the
+// renderer flag so the two can be evaluated separately -- though COGs only render
+// on MapLibre, so this does nothing while USE_MAPLIBRE is off.
+//
+// Which layers this covers is data, not a list here: cogPrefixForLayer() returns
+// null for any layer with no entry in COG_PREFIX_BY_LAYER, and those fall back to
+// tiles. The env var keeps its original name so existing setups are unaffected.
+const USE_COG = process.env.REACT_APP_USE_COG_CLEARCUT === 'true';
 const TILE_ZOOM_LEVELS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 const TILE_ZOOM_RANGE = {
   min: Math.min(...TILE_ZOOM_LEVELS),
@@ -106,6 +117,18 @@ const TILE_ZOOM_RANGE = {
 // Esri's Light Gray Canvas cache stops at level 16 — deeper requests just
 // re-serve the same overzoomed level-16 tile, so cap zoom there in light mode.
 const LIGHT_BASEMAP_MAX_ZOOM = 16;
+// One pyramid per range-year, built by caribou_tiling/code/caribou_tiler_range.py
+// and served from disk via setupProxy (CARIBOU_RANGE_TILES_DIR) until it is
+// uploaded. Opt-in, because a checkout without those tiles would otherwise ask
+// for a pyramid that is not there.
+//
+// Worth the switch on two counts. One layer per range instead of one per FMU
+// (a range spans 5-7 of them, all seven span 25). And an FMU pyramid holds
+// every range overlapping that FMU -- troutlake carries Berens, Churchill and
+// Sydney -- so selecting one range through FMU tiles also draws the others.
+// A range pyramid holds that range alone.
+const CARIBOU_RANGE_TILES = process.env.REACT_APP_CARIBOU_RANGE_TILES === 'true';
+const CARIBOU_RANGE_TILE_URL = `${TILES_BASE_URL}/tiles/wildlife/caribou-range/{region}_{year}/{z}/{x}/{y}.png`;
 
 // How far the viewport may zoom out, which is NOT where the tile pyramid starts.
 // The two were the same value, so the map was pinned to the tiles' floor of z6 --
@@ -115,6 +138,12 @@ const LIGHT_BASEMAP_MAX_ZOOM = 16;
 // province-wide view worth having.
 const MAP_MIN_ZOOM = 4;
 const RASTER_MULTI_FMU_SOFT_LIMIT = 8;
+// Caribou range mode gets a higher ceiling than the general one above. That
+// limit exists to contain the per-tile recolouring in RasterTileLayer, and
+// habitat tiles are pre-coloured -- they return early out of that path
+// entirely. All seven ranges together are 25 FMUs, so this admits every
+// combination rather than silently dropping layers mid-range.
+const RASTER_RANGE_MODE_LIMIT = 25;
 const PREFERRED_RASTER_REGIONS = ['wabigoon', 'troutlake'];
 
 const MODULES = [
@@ -187,6 +216,12 @@ const MODULES = [
         color: '#F8420B',
         mode: 'annual',
         tms: false,
+        // Wildfire carries its own class table rather than borrowing clearcut's:
+        // the rasteriser writes 1 for burned, 0 for nodata. All three unset for
+        // clearcut, which falls back to its own palette and class 2.
+        cogPalette: WILDFIRE_CLASSES,
+        cogClasses: WILDFIRE_VISIBLE_CLASSES,
+        cogColorClass: WILDFIRE_CLASS_ID,
       },
     ],
   },
@@ -220,12 +255,52 @@ const MODULES = [
     id: 'wildlife',
     name: 'Wildlife & Species',
     icon: '🐦',
-    description: 'Track birds and wildlife species distribution',
-    component: ClearcutDetection,
+    description: 'Species habitat and distribution',
+    component: CaribouHabitatModule,
     temporalOptions: {
+      // Caribou habitat (MSPA) is the only layer here with tiles behind it; the
+      // bird/mammal entries below are still placeholders. availableYears drives
+      // the slider by index so it snaps to assessed years.
+      //
+      // Year-over-year change is small by nature -- disturbance is cumulative,
+      // so each year only ADDS to an existing footprint (0.01-1.35% of pixels
+      // per step). The full span is where it reads: -12.9% core on troutlake.
+      // 2023-2025 is nearly flat because the input disturbance layers do not
+      // appear to extend past 2023.
       yearRange: [2015, 2025],
+      availableYears: [2015, 2016, 2017, 2018, 2019, 2020,
+        2021, 2022, 2023, 2024, 2025],
     },
     layers: [
+      {
+        id: 'caribou-habitat',
+        name: 'Caribou Habitat',
+        // Headline for the right panel while this layer is on. The Wildlife
+        // module hosts several species, so the panel names the species rather
+        // than the module. The left-hand module selector is untouched.
+        panelTitle: 'Caribou Suitable Habitat',
+        panelIcon: '🦌',
+        // tiles/wildlife/{specie}/... so the module can host more species
+        // without each one claiming a top-level prefix.
+        tileUrl: `${TILES_BASE_URL}/tiles/wildlife/caribou/{region}_{year}/{z}/{x}/{y}.png`,
+        // Mid-viridis: a single swatch standing in for the 5-class ramp.
+        color: '#21918C',
+        mode: 'annual',
+        tms: false,
+        // Caribou's own size-class table. cogColorClass is explicitly null: the
+        // five-step ramp IS the information, so repainting one class in the
+        // layer's colour would destroy the reading. `color` above is the panel
+        // swatch, not the raster.
+        cogPalette: CARIBOU_CLASSES,
+        cogClasses: CARIBOU_VISIBLE_CLASSES,
+        cogColorClass: null,
+        // Both caribou products are complete -- 77 range COGs and 220 FMU COGs
+        // cover every region that has habitat at all -- so a region-year absent
+        // from coverage has no data rather than no conversion. Without this the
+        // 19 FMUs outside the caribou range fell back to a PNG pyramid that does
+        // not cover them either, and fetched a tree of 404s per region.
+        cogAuthoritative: true,
+      },
       {
         id: 'wildlife-birds',
         name: 'Bird Species',
@@ -293,6 +368,121 @@ function DrawingTools({ mapRef, onDrawChange }) {
   }, [map]);
 
   return null;
+}
+
+// Caribou population ranges (OMNR). Only the seven the pipeline models are in
+// the file, so the overlay never implies coverage that does not exist. Each
+// feature carries its own colour, so the map and the panel legend read from one
+// source and cannot drift.
+function CaribouRangeBoundaries({ visible, selectedRanges }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    // Fetch once, on first reveal -- 166 KB that most sessions never need.
+    if (!visible || data) return undefined;
+    let cancelled = false;
+    fetch(`${DATA_BASE_URL}/data/caribou_ranges.geojson`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`caribou_ranges.geojson: HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((json) => { if (!cancelled) setData(json); })
+      .catch((err) => console.error('[CaribouRanges]', err));
+    return () => { cancelled = true; };
+  }, [visible, data]);
+
+  const onEachFeature = useCallback((feature, layer) => {
+    layer.options.pmIgnore = true;
+    // CARIBOU_RANGES wins over the geojson's own `color`, so restyling does not
+    // mean regenerating the file.
+    const colour = rangeColor(feature.properties?.RANGE_NAME)
+      || feature.properties?.color || '#333333';
+    layer.setStyle({
+      color: colour,
+      weight: 2,
+      opacity: 1,
+      // Outline only, matching RegionBoundaries. Leaflet draws vectors in
+      // overlayPane, always above tilePane, so any fill here would tint the
+      // habitat raster it is meant to annotate.
+      fillOpacity: 0,
+    });
+    if (feature.properties?.RANGE_NAME) {
+      layer.bindTooltip(feature.properties.RANGE_NAME, { sticky: true });
+    }
+  }, []);
+
+  // With ranges selected, outline only those — otherwise the switches say one
+  // range is on while the map still draws all seven.
+  const shown = useMemo(() => {
+    if (!data) return null;
+    if (!selectedRanges || selectedRanges.length === 0) return data;
+    const wanted = new Set(selectedRanges.map((r) => String(r).toLowerCase()));
+    return {
+      ...data,
+      features: (data.features || []).filter(
+        (f) => wanted.has(String(f.properties?.RANGE_NAME || '').toLowerCase()),
+      ),
+    };
+  }, [data, selectedRanges]);
+
+  if (!visible || !shown) return null;
+  // Keyed on the selection so Leaflet rebuilds the layer when it changes;
+  // react-leaflet does not diff GeoJSON data in place.
+  return (
+    <GeoJSON
+      key={`caribou-ranges-${(selectedRanges || []).join('-') || 'all'}`}
+      data={shown}
+      onEachFeature={onEachFeature}
+    />
+  );
+}
+
+/**
+ * The same range outlines as a plain FeatureCollection, for the MapLibre map.
+ *
+ * CaribouRangeBoundaries above is a Leaflet component -- setStyle, bindTooltip,
+ * pmIgnore -- so it renders only inside <MapContainer>. With USE_MAPLIBRE on it
+ * never mounted at all, which is why selecting a range drew habitat with no
+ * boundary around it.
+ *
+ * MapLibre has no per-feature style callback, so the colour is resolved here and
+ * written onto each feature for a data-driven paint expression to read.
+ */
+function useCaribouRangeGeoJson(selectedRanges) {
+  const [data, setData] = useState(null);
+  const wanted = (selectedRanges || []).length > 0;
+
+  useEffect(() => {
+    // Fetch once, on first reveal -- 166 KB that most sessions never need.
+    if (!wanted || data) return undefined;
+    let cancelled = false;
+    fetch(`${DATA_BASE_URL}/data/caribou_ranges.geojson`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`caribou_ranges.geojson: HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((json) => { if (!cancelled) setData(json); })
+      .catch((err) => console.error('[CaribouRanges]', err));
+    return () => { cancelled = true; };
+  }, [wanted, data]);
+
+  return useMemo(() => {
+    if (!data || !wanted) return null;
+    const ids = new Set(selectedRanges.map((r) => String(r).toLowerCase()));
+    const features = (data.features || [])
+      .filter((f) => ids.has(String(f.properties?.RANGE_NAME || '').toLowerCase()))
+      .map((f) => ({
+        ...f,
+        properties: {
+          ...f.properties,
+          // CARIBOU_RANGES wins over the geojson's own `color`, so restyling does
+          // not mean regenerating the file -- same precedence as the Leaflet path.
+          _lineColor: rangeColor(f.properties?.RANGE_NAME)
+            || f.properties?.color || '#333333',
+        },
+      }));
+    return { type: 'FeatureCollection', features };
+  }, [data, wanted, selectedRanges]);
 }
 
 function RegionBoundaries({ selectedFMUs, useOntarioOverview, basemapMode }) {
@@ -432,6 +622,46 @@ function App() {
   const clearcutStatsRegion = useMemo(() => (
     rasterRegions.length > 0 ? rasterRegions[0] : null
   ), [rasterRegions]);
+
+  // Caribou range mode. Selecting ranges swaps the habitat layer's regions for
+  // the FMUs carrying those ranges, so the layer follows range boundaries
+  // instead of the FMU selection. Deliberately scoped to that one layer: per
+  // issue #15 the range shape must not affect any other module.
+  const [selectedRanges, setSelectedRanges] = useState([]);
+  const [rangeRegions, setRangeRegions] = useState([]);
+
+  useEffect(() => {
+    if (selectedRanges.length === 0) {
+      setRangeRegions([]);
+      return undefined;
+    }
+    let cancelled = false;
+    getFmusForRanges(selectedRanges)
+      .then((fmus) => {
+        if (!cancelled) setRangeRegions(fmus.slice(0, RASTER_RANGE_MODE_LIMIT));
+      })
+      .catch((err) => {
+        console.error('[CaribouRanges]', err);
+        if (!cancelled) setRangeRegions([]);
+      });
+    return () => { cancelled = true; };
+  }, [selectedRanges]);
+
+  const caribouRasterRegions = selectedRanges.length > 0 ? rangeRegions : rasterRegions;
+
+  // Range outlines for the MapLibre map. The Leaflet branch has its own
+  // component; this is the same data shaped for a geojson source.
+  const caribouRangeGeoJson = useCaribouRangeGeoJson(selectedRanges);
+
+  const handleToggleRange = useCallback((rangeId, on) => {
+    setSelectedRanges((prev) => (
+      on ? [...new Set([...prev, rangeId])] : prev.filter((r) => r !== rangeId)
+    ));
+  }, []);
+
+  const handleToggleAllRanges = useCallback((on) => {
+    setSelectedRanges(on ? CARIBOU_RANGES.map((r) => r.id) : []);
+  }, []);
 
   const [moduleYears, setModuleYears] = useState(() => {
     const initial = {};
@@ -603,7 +833,11 @@ function App() {
   const PREFETCH_YEARS = 2;
   const [playing, setPlaying] = useState(false);
 
-  const [cogCoverage, setCogCoverage] = useState(null);
+  // Coverage per COG prefix, not one shared set. Clearcut and wildfire are
+  // separate products holding different region-years -- wabigoon has clearcut for
+  // twelve years and fire for one -- so a single set would have each layer
+  // answering for the other. A missing key means "not loaded yet".
+  const [cogCoverageByPrefix, setCogCoverageByPrefix] = useState({});
   // Regions that have a clearcut product of any kind. null until known, and
   // treated the same way as unknown COG coverage: request nothing yet.
   const [clearcutRegions, setClearcutRegions] = useState(null);
@@ -637,19 +871,46 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!USE_MAPLIBRE || !USE_COG_CLEARCUT || rasterRegions.length === 0) {
-      setCogCoverage(null);
+    // Ranges count as a selection even with no FMU chosen -- clearing coverage
+    // on an empty rasterRegions left caribou range mode waiting on a set that
+    // would never arrive, which reads as "coverage unknown" and draws nothing.
+    if (!USE_MAPLIBRE || !USE_COG
+        || (rasterRegions.length === 0 && selectedRanges.length === 0)) {
+      setCogCoverageByPrefix({});
       return undefined;
     }
     let cancelled = false;
-    // Only the clearcut module has a COG product, so probing every module's year
-    // multiplied the request count for nothing. (Moot when the manifest is
-    // published -- this is the fallback path.)
-    const years = [...new Set([moduleYears.clearcut || selectedYear])];
-    getCogCoverage(rasterRegions.map((region) => ({ region, years })))
-      .then((covered) => { if (!cancelled) setCogCoverage(covered); });
+
+    // One request per active COG product, asking only about that product's own
+    // module year. Probing every module's year multiplied the request count for
+    // nothing. (Moot once the manifest is published -- this is the fallback.)
+    const wanted = [];
+    MODULES.forEach((module) => {
+      (activeLayers[module.id] || []).forEach((layerId) => {
+        const caribouRangeMode = layerId === 'caribou-habitat' && selectedRanges.length > 0;
+        const prefix = coveragePrefixForLayer(layerId, { caribouRangeMode });
+        if (!prefix || wanted.some((w) => w.prefix === prefix)) return;
+        wanted.push({
+          prefix,
+          year: moduleYears[module.id] || selectedYear,
+          // Caribou in range mode is keyed by range, everything else by FMU.
+          // Only the HEAD-probe fallback reads this -- the manifest answers for
+          // a whole prefix at once -- but probing FMU ids against a range-keyed
+          // product would report the layer as having no coverage at all.
+          regions: caribouRangeMode ? selectedRanges : rasterRegions,
+        });
+      });
+    });
+
+    Promise.all(wanted.map(({ prefix, year, regions }) => (
+      getCogCoverage(regions.map((region) => ({ region, years: [year] })), prefix)
+        .then((covered) => [prefix, covered])
+    ))).then((entries) => {
+      if (!cancelled) setCogCoverageByPrefix(Object.fromEntries(entries));
+    });
+
     return () => { cancelled = true; };
-  }, [rasterRegions, moduleYears, selectedYear]);
+  }, [rasterRegions, selectedRanges, activeLayers, moduleYears, selectedYear]);
 
   // Source id -> "Module / Layer". Ids are built below as
   // `<prefix>-<layerId>-<region>`, and layer ids themselves contain hyphens, so
@@ -693,9 +954,29 @@ function App() {
     MODULES.forEach((module) => {
       (activeLayers[module.id] || []).forEach((layerId) => {
         const layer = module.layers?.find((l) => l.id === layerId);
-        if (!layer || rasterRegions.length === 0) return;
+        // Not `rasterRegions.length === 0`: caribou in range mode draws from the
+        // selected ranges and needs no FMU selection at all, so that guard hid
+        // the layer entirely when a range was toggled with no FMU chosen. The
+        // per-layer region list below is the real emptiness check.
+        if (!layer) return;
 
         const moduleYear = moduleYears[module.id] || selectedYear;
+
+        // Caribou is the one layer whose unit is not the FMU. With ranges
+        // selected it draws per RANGE, because an FMU pyramid carries every
+        // range crossing it -- troutlake holds Berens, Churchill and Sydney, so
+        // asking for Berens through FMU tiles drew all three. Mirrors the same
+        // switch in the Leaflet branch below.
+        const rangeMode = layer.id === 'caribou-habitat' && selectedRanges.length > 0;
+        let layerRegions;
+        if (rangeMode) {
+          layerRegions = selectedRanges;
+        } else if (layer.id === 'caribou-habitat') {
+          layerRegions = caribouRasterRegions;
+        } else {
+          layerRegions = rasterRegions;
+        }
+        if (layerRegions.length === 0) return;
 
         // The current year, then the buffer. Buffered years are mounted at zero
         // opacity so MapLibre fetches their tiles for the current viewport
@@ -710,11 +991,21 @@ function App() {
         [moduleYear, ...upcoming].forEach((renderYear, frameIdx) => {
         const layerOpacity = frameIdx === 0 ? undefined : 0;
 
-        rasterRegions.forEach((region) => {
-          // Does this layer have a COG product at all? Only clearcut does;
-          // everything else goes straight to its PNG pyramid.
-          const cogCapable = USE_COG_CLEARCUT
-            && clearcutCogUrl(layer.id, region, renderYear) !== null;
+        layerRegions.forEach((region) => {
+          // Which COG product this layer draws, and whose coverage answers for
+          // it. Asking per prefix is what lets wildfire be gated by its own
+          // availability rather than clearcut's -- the two hold different
+          // region-years, so one shared set would have each hiding the other.
+          //
+          // Caribou resolves to a different prefix per mode -- range-keyed with
+          // ranges selected, FMU-keyed otherwise -- so the mode has to travel
+          // with the lookup. Testing FMU ids against range-keyed coverage would
+          // match nothing and hide the layer.
+          const cogOpts = { caribouRangeMode: rangeMode };
+          const cogPrefix = USE_COG ? cogPrefixForLayer(layer.id, cogOpts) : null;
+          const coverage = cogPrefix
+            ? cogCoverageByPrefix[coveragePrefixForLayer(layer.id, cogOpts)]
+            : undefined;
 
           // Hold off until coverage is known rather than rendering the PNG
           // meanwhile. Falling back eagerly meant every clearcut region fired a
@@ -722,15 +1013,43 @@ function App() {
           // COG a moment later once the manifest arrived -- the requests still
           // completed, so it was a burst of downloads for tiles nobody drew.
           // The manifest is a single small file, so the wait is brief.
-          if (cogCapable && cogCoverage === null) return;
+          if (cogPrefix && coverage === undefined) return;
 
           // Skip regions with no clearcut product at all. lakehead_2025 has
           // neither a COG nor a tile pyramid, so the PNG fallback was issuing a
-          // full request tree per region purely to collect 404s.
-          if (cogCapable && clearcutRegions && !clearcutRegions.has(region)) return;
+          // full request tree per region purely to collect 404s. Clearcut-only:
+          // it is derived from clearcut_stats.json.
+          if (cogPrefix && module.id === 'clearcut'
+              && clearcutRegions && !clearcutRegions.has(region)) return;
 
-          const hasCog = cogCapable && cogCoverage.has(`${region}_${renderYear}`);
-          const cogUrl = hasCog ? clearcutCogUrl(layer.id, region, renderYear) : null;
+          const hasCog = !!coverage && coverage.has(`${region}_${renderYear}`);
+          // From the resolved prefix, not the layer id: caribou's id maps to two
+          // different products depending on mode.
+          const cogUrl = hasCog ? cogUrlForPrefix(cogPrefix, region, renderYear) : null;
+
+          // A sparse COG layer with no raster for this region-year and no PNG to
+          // fall back to has nothing to draw, and asking anyway is what produced
+          // the 404s. Skip only when the manifest positively says the pyramid
+          // lacks this region-year -- an unindexed directory means "unknown", not
+          // "absent", and must fall through to the PNG path.
+          //
+          // tileDirOf() reads one path segment, so tiles/wildlife/caribou/ comes
+          // back as `wildlife`, which the manifest never indexes: its tile scan
+          // only sees <region>_<year> directly under tiles/<dir>/. Treating that
+          // as "no pyramid" hid the caribou layer completely.
+          const pngDir = tileDirOf(layer.tileUrl);
+          const pngCoverage = pngDir ? tileCoverage[pngDir] : null;
+          if (cogPrefix && !hasCog && !TINTED_LAYER_IDS.has(layer.id)
+              && pngCoverage && !pngCoverage.has(`${region}_${renderYear}`)) return;
+
+          // A layer whose COG product is complete needs no PNG fallback: absence
+          // from coverage means "no data here", not "not converted yet". Caribou
+          // says so because every FMU with habitat has a COG, and the 19 FMUs
+          // without one are outside the caribou range entirely -- falling back
+          // there fetched a full pyramid of 404s, since the PNG set does not
+          // cover them either. Clearcut must NOT declare this: only wabigoon is
+          // converted, and its fallback is load-bearing.
+          if (cogPrefix && !hasCog && layer.cogAuthoritative) return;
           if (cogUrl) {
             // color carries the layer's identity, not the class's: accumulated and
             // annual are both class 2 in the raster, so without it they'd paint the
@@ -740,6 +1059,11 @@ function App() {
               url: cogUrl,
               color: layer.color,
               opacity: layerOpacity,
+              // All undefined for clearcut, which falls back to its own palette
+              // and class 2. Wildfire supplies its own table and paints class 1.
+              palette: layer.cogPalette,
+              visibleClasses: layer.cogClasses,
+              colorClass: layer.cogColorClass,
             });
             return;
           }
@@ -750,7 +1074,16 @@ function App() {
           const covered = tileDir ? tileCoverage[tileDir] : null;
           if (covered && !covered.has(`${region}_${renderYear}`)) return;
 
-          let tileUrl = layer.tileUrl.replace('{year}', renderYear).replace('{region}', region);
+          // In range mode `region` is a range id, and the per-range pyramid
+          // spells its folders range_<id>_<year> -- the COGs use the bare id, so
+          // only the PNG path needs the prefix. Behind CARIBOU_RANGE_TILES
+          // because a checkout without those tiles would otherwise ask for a
+          // pyramid that is not there.
+          if (rangeMode && !CARIBOU_RANGE_TILES) return;
+          const template = rangeMode ? CARIBOU_RANGE_TILE_URL : layer.tileUrl;
+          const tileRegion = rangeMode ? `range_${region}` : region;
+
+          let tileUrl = template.replace('{year}', renderYear).replace('{region}', tileRegion);
 
           if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(renderYear)) {
             tileUrl = tileUrl.replace(
@@ -783,7 +1116,8 @@ function App() {
     });
 
     return { rasterLayers, cogLayers };
-  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage,
+  }, [activeLayers, rasterRegions, caribouRasterRegions, selectedRanges,
+      moduleYears, selectedYear, cogCoverageByPrefix,
       clearcutRegions, tileCoverage, playing, timelineYears]);
 
   // What the AI agent needs to answer "what's in here" across every layer the
@@ -804,8 +1138,14 @@ function App() {
     activeLayerSummary,
     selectedFMUs,
     selectedYear,
+    selectedRanges,
+    onToggleRange: handleToggleRange,
+    onToggleAllRanges: handleToggleAllRanges,
+    // The regions the habitat layer is actually drawing, so the panel's numbers
+    // describe what is on the map rather than the FMU selection behind it.
+    caribouRegions: caribouRasterRegions,
     // Lets the clearcut module narrow its chart to regions the map can draw.
-    useCogClearcut: USE_COG_CLEARCUT,
+    useCogClearcut: USE_COG,
   };
 
   const handleModuleSelect = useCallback((module) => {
@@ -994,6 +1334,7 @@ function App() {
                 satelliteAttribution={attribution}
                 lightBasemap={LIGHT_BASEMAP}
                 regionsData={maplibreRegions}
+                rangeBoundaries={caribouRangeGeoJson}
                 rasterLayers={maplibreLayers.rasterLayers}
                 cogLayers={maplibreLayers.cogLayers}
                 rasterOpacity={rasterOpacity}
@@ -1056,12 +1397,28 @@ function App() {
               return moduleActiveLayers.flatMap((layerId) => {
                 const layer = module.layers?.find((l) => l.id === layerId);
                 if (!layer) return null;
-                if (rasterRegions.length === 0) return null;
 
+                // Range mode addresses tiles by range rather than by FMU, so the
+                // region list and the URL template have to change together.
+                const useRangeTiles = layer.id === 'caribou-habitat'
+                  && CARIBOU_RANGE_TILES
+                  && selectedRanges.length > 0;
+
+                let layerRegions;
+                if (useRangeTiles) {
+                  layerRegions = selectedRanges.map((r) => `range_${r}`);
+                } else if (layer.id === 'caribou-habitat') {
+                  layerRegions = caribouRasterRegions;
+                } else {
+                  layerRegions = rasterRegions;
+                }
+                if (layerRegions.length === 0) return null;
+
+                const templateUrl = useRangeTiles ? CARIBOU_RANGE_TILE_URL : layer.tileUrl;
                 const moduleYear = moduleYears[module.id] || selectedYear;
 
-                return rasterRegions.map((region) => {
-                  let tileUrl = layer.tileUrl.replace('{year}', moduleYear);
+                return layerRegions.map((region) => {
+                  let tileUrl = templateUrl.replace('{year}', moduleYear);
                   tileUrl = tileUrl.replace('{region}', region);
 
                   if (layer.id === 'clearcut-accumulated' && CLEARCUT_SENSOR_SUBFOLDER_YEARS.includes(moduleYear)) {
@@ -1094,6 +1451,15 @@ function App() {
             })}
 
             <RegionBoundaries selectedFMUs={selectedFMUs} useOntarioOverview={useOntarioOverview} basemapMode={basemapMode} />
+            {/* Selected ranges always outline themselves -- habitat with no
+                boundary around it reads as a bug, and that is the only thing the
+                old "Outline all ranges" switch was really being used for. Drawn
+                only for what is selected, so the map says what you asked for and
+                nothing else. */}
+            <CaribouRangeBoundaries
+              visible={selectedRanges.length > 0}
+              selectedRanges={selectedRanges}
+            />
             <DrawingTools mapRef={mapRef} onDrawChange={setDrawnFeatures} />
             <ZoomControlPositioner position="bottomleft" />
             <MaxZoomController maxZoom={mapMaxZoom} />
@@ -1105,6 +1471,7 @@ function App() {
           <ModulePanel
             module={selectedModule}
             data={moduleData}
+            activeLayers={activeLayers[selectedModule?.id] || []}
             selectedYear={selectedYear}
             yearRange={selectedModule?.temporalOptions?.yearRange || [2010, 2024]}
             basemapSynced={

@@ -15,6 +15,24 @@ const NATIVE_TILE_ZOOM_RANGE = {
   min: Math.min(...NATIVE_TILE_ZOOM_LEVELS),
   max: Math.max(...NATIVE_TILE_ZOOM_LEVELS),
 };
+
+// Deepest zoom a layer has real tiles at. Past it Leaflet upscales the last
+// native level instead of requesting tiles, so a pyramid need not be built
+// deeper than its source can justify.
+//
+// Caribou habitat comes from a 30 m raster (EPSG:3978). Web Mercator hits 30 m
+// at z11.7, so z13 is already ~2.4x oversampled and z14 ~4.9x -- the extra
+// level is interpolation, not detail. It exists only because this file used to
+// ask every layer for native tiles at 14; caribou_tiler_v3.py says as much in
+// its NATIVE_Z comment. Capping here is what lets z14 be pruned from the
+// bucket: ~68% of that pyramid's tiles and ~59% of its bytes.
+const LAYER_MAX_NATIVE_ZOOM = {
+  'caribou-habitat': 13,
+};
+
+const maxNativeZoomFor = (layerId) => (
+  LAYER_MAX_NATIVE_ZOOM[layerId] ?? NATIVE_TILE_ZOOM_RANGE.max
+);
 const RASTER_TILE_CLASS = 'foresttrace-raster-tile';
 // Delay before a tileUrl change (e.g. dragging the year slider) triggers an
 // actual tile refetch — collapses many rapid ticks into one redraw.
@@ -131,6 +149,9 @@ function RasterTileLayer({
   // the placeholder forest/wildlife layers): just detects pure-red pixels for
   // the visible-percentage stat, no worker involved.
   const handleTileLoad = useCallback((e) => {
+    // Habitat tiles already contain the color ramp and transparency.
+    if (layerId === 'caribou-habitat') return;
+
     const img = e.tile;
     if (!(img.complete && img.naturalWidth > 0 && img.naturalHeight > 0)) return;
 
@@ -155,7 +176,7 @@ function RasterTileLayer({
       tileCountsRef.current.set(key, { red: redCount, total: totalCount });
     }
     updateVisiblePercentage();
-  }, [updateVisiblePercentage]);
+  }, [layerId, updateVisiblePercentage]);
 
   const handleClearcutTileError = useCallback((e) => {
     if (!e.coords) return;
@@ -378,6 +399,28 @@ function RasterTileLayer({
 
   if (PROCESSED_LAYER_IDS.has(layerId)) {
     return null;
+  }
+
+  // Keep pre-colored habitat tiles on one native-zoom-aware image layer.
+  if (layerId === 'caribou-habitat') {
+    return (
+      <TileLayer
+        ref={highResLayerRef}
+        url={tileUrl}
+        minZoom={TILE_ZOOM_RANGE.min}
+        maxZoom={TILE_ZOOM_RANGE.max}
+        maxNativeZoom={maxNativeZoomFor(layerId)}
+        zIndex={10}
+        className={RASTER_TILE_CLASS}
+        tms={tms}
+        crossOrigin="anonymous"
+        keepBuffer={1}
+        eventHandlers={{
+          loading: () => onLoadingChangeRef.current?.(true),
+          load: () => onLoadingChangeRef.current?.(false),
+        }}
+      />
+    );
   }
 
   return (
