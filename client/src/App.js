@@ -26,7 +26,10 @@ import { handleLocateUser } from './utils/mapUtils';
 import { CLEARCUT_SENSOR_SUBFOLDER_YEARS, DEFAULT_CLEARCUT_SENSOR, getRegionsWithClearcutData } from './utils/clearcutAreaStats';
 import { createEmptyBiomassHistogram } from './utils/biomassHistogram';
 import { getFireYearsForRegions } from './utils/wildfireYears';
-import { TILES_BASE_URL, clearcutCogUrl } from './config';
+import { WILDFIRE_CLASSES, WILDFIRE_CLASS_ID, WILDFIRE_VISIBLE_CLASSES } from './utils/wildfireClasses';
+import {
+  TILES_BASE_URL, cogPrefixForLayer, coveragePrefixForLayer, cogUrlForPrefix,
+} from './config';
 import useRegionBoundaries from './hooks/useRegionBoundaries';
 import { TINTED_LAYER_IDS, tintedTileUrl } from './utils/tintedTileProtocol';
 import { summarizeDrawing } from './utils/drawnShapeContext';
@@ -93,10 +96,14 @@ const center = [49.80318325874751, -92.8087780822145];
 //   REACT_APP_USE_MAPLIBRE=true npm start
 const USE_MAPLIBRE = process.env.REACT_APP_USE_MAPLIBRE === 'true';
 
-// Serve clearcut from COGs rather than PNG pyramids. Independent of the renderer
-// flag so the two can be evaluated separately -- though COGs only render on
-// MapLibre, so this does nothing while USE_MAPLIBRE is off.
-const USE_COG_CLEARCUT = process.env.REACT_APP_USE_COG_CLEARCUT === 'true';
+// Serve COG-backed layers from COGs rather than PNG pyramids. Independent of the
+// renderer flag so the two can be evaluated separately -- though COGs only render
+// on MapLibre, so this does nothing while USE_MAPLIBRE is off.
+//
+// Which layers this covers is data, not a list here: cogPrefixForLayer() returns
+// null for any layer with no entry in COG_PREFIX_BY_LAYER, and those fall back to
+// tiles. The env var keeps its original name so existing setups are unaffected.
+const USE_COG = process.env.REACT_APP_USE_COG_CLEARCUT === 'true';
 const TILE_ZOOM_LEVELS = [6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
 const TILE_ZOOM_RANGE = {
   min: Math.min(...TILE_ZOOM_LEVELS),
@@ -187,6 +194,12 @@ const MODULES = [
         color: '#F8420B',
         mode: 'annual',
         tms: false,
+        // Wildfire carries its own class table rather than borrowing clearcut's:
+        // the rasteriser writes 1 for burned, 0 for nodata. All three unset for
+        // clearcut, which falls back to its own palette and class 2.
+        cogPalette: WILDFIRE_CLASSES,
+        cogClasses: WILDFIRE_VISIBLE_CLASSES,
+        cogColorClass: WILDFIRE_CLASS_ID,
       },
     ],
   },
@@ -603,7 +616,11 @@ function App() {
   const PREFETCH_YEARS = 2;
   const [playing, setPlaying] = useState(false);
 
-  const [cogCoverage, setCogCoverage] = useState(null);
+  // Coverage per COG prefix, not one shared set. Clearcut and wildfire are
+  // separate products holding different region-years -- wabigoon has clearcut for
+  // twelve years and fire for one -- so a single set would have each layer
+  // answering for the other. A missing key means "not loaded yet".
+  const [cogCoverageByPrefix, setCogCoverageByPrefix] = useState({});
   // Regions that have a clearcut product of any kind. null until known, and
   // treated the same way as unknown COG coverage: request nothing yet.
   const [clearcutRegions, setClearcutRegions] = useState(null);
@@ -637,19 +654,33 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!USE_MAPLIBRE || !USE_COG_CLEARCUT || rasterRegions.length === 0) {
-      setCogCoverage(null);
+    if (!USE_MAPLIBRE || !USE_COG || rasterRegions.length === 0) {
+      setCogCoverageByPrefix({});
       return undefined;
     }
     let cancelled = false;
-    // Only the clearcut module has a COG product, so probing every module's year
-    // multiplied the request count for nothing. (Moot when the manifest is
-    // published -- this is the fallback path.)
-    const years = [...new Set([moduleYears.clearcut || selectedYear])];
-    getCogCoverage(rasterRegions.map((region) => ({ region, years })))
-      .then((covered) => { if (!cancelled) setCogCoverage(covered); });
+
+    // One request per active COG product, asking only about that product's own
+    // module year. Probing every module's year multiplied the request count for
+    // nothing. (Moot once the manifest is published -- this is the fallback.)
+    const wanted = [];
+    MODULES.forEach((module) => {
+      (activeLayers[module.id] || []).forEach((layerId) => {
+        const prefix = coveragePrefixForLayer(layerId);
+        if (!prefix || wanted.some((w) => w.prefix === prefix)) return;
+        wanted.push({ prefix, year: moduleYears[module.id] || selectedYear });
+      });
+    });
+
+    Promise.all(wanted.map(({ prefix, year }) => (
+      getCogCoverage(rasterRegions.map((region) => ({ region, years: [year] })), prefix)
+        .then((covered) => [prefix, covered])
+    ))).then((entries) => {
+      if (!cancelled) setCogCoverageByPrefix(Object.fromEntries(entries));
+    });
+
     return () => { cancelled = true; };
-  }, [rasterRegions, moduleYears, selectedYear]);
+  }, [rasterRegions, activeLayers, moduleYears, selectedYear]);
 
   // Source id -> "Module / Layer". Ids are built below as
   // `<prefix>-<layerId>-<region>`, and layer ids themselves contain hyphens, so
@@ -711,10 +742,14 @@ function App() {
         const layerOpacity = frameIdx === 0 ? undefined : 0;
 
         rasterRegions.forEach((region) => {
-          // Does this layer have a COG product at all? Only clearcut does;
-          // everything else goes straight to its PNG pyramid.
-          const cogCapable = USE_COG_CLEARCUT
-            && clearcutCogUrl(layer.id, region, renderYear) !== null;
+          // Which COG product this layer draws, and which product's coverage
+          // answers for it. Asking per prefix is what lets wildfire be gated by
+          // its own availability rather than clearcut's -- the two hold different
+          // region-years, so one shared set would have each hiding the other.
+          const cogPrefix = USE_COG ? cogPrefixForLayer(layer.id) : null;
+          const coverage = cogPrefix
+            ? cogCoverageByPrefix[coveragePrefixForLayer(layer.id)]
+            : undefined;
 
           // Hold off until coverage is known rather than rendering the PNG
           // meanwhile. Falling back eagerly meant every clearcut region fired a
@@ -722,15 +757,17 @@ function App() {
           // COG a moment later once the manifest arrived -- the requests still
           // completed, so it was a burst of downloads for tiles nobody drew.
           // The manifest is a single small file, so the wait is brief.
-          if (cogCapable && cogCoverage === null) return;
+          if (cogPrefix && coverage === undefined) return;
 
           // Skip regions with no clearcut product at all. lakehead_2025 has
           // neither a COG nor a tile pyramid, so the PNG fallback was issuing a
-          // full request tree per region purely to collect 404s.
-          if (cogCapable && clearcutRegions && !clearcutRegions.has(region)) return;
+          // full request tree per region purely to collect 404s. Clearcut-only:
+          // it is derived from clearcut_stats.json.
+          if (cogPrefix && module.id === 'clearcut'
+              && clearcutRegions && !clearcutRegions.has(region)) return;
 
-          const hasCog = cogCapable && cogCoverage.has(`${region}_${renderYear}`);
-          const cogUrl = hasCog ? clearcutCogUrl(layer.id, region, renderYear) : null;
+          const hasCog = !!coverage && coverage.has(`${region}_${renderYear}`);
+          const cogUrl = hasCog ? cogUrlForPrefix(cogPrefix, region, renderYear) : null;
           if (cogUrl) {
             // color carries the layer's identity, not the class's: accumulated and
             // annual are both class 2 in the raster, so without it they'd paint the
@@ -740,6 +777,11 @@ function App() {
               url: cogUrl,
               color: layer.color,
               opacity: layerOpacity,
+              // All undefined for clearcut, which falls back to its own palette
+              // and class 2. Wildfire supplies its own table and paints class 1.
+              palette: layer.cogPalette,
+              visibleClasses: layer.cogClasses,
+              colorClass: layer.cogColorClass,
             });
             return;
           }
@@ -783,7 +825,7 @@ function App() {
     });
 
     return { rasterLayers, cogLayers };
-  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverage,
+  }, [activeLayers, rasterRegions, moduleYears, selectedYear, cogCoverageByPrefix,
       clearcutRegions, tileCoverage, playing, timelineYears]);
 
   // What the AI agent needs to answer "what's in here" across every layer the
@@ -805,7 +847,7 @@ function App() {
     selectedFMUs,
     selectedYear,
     // Lets the clearcut module narrow its chart to regions the map can draw.
-    useCogClearcut: USE_COG_CLEARCUT,
+    useCogClearcut: USE_COG,
   };
 
   const handleModuleSelect = useCallback((module) => {

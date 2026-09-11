@@ -36,9 +36,20 @@ export const COG_BASE_URL = process.env.REACT_APP_COG_BASE_URL || TILES_BASE_URL
 //       between; adjacency reads corroboration as "still there next season".
 //       Mature years fall ~4-5%; 2017-2019 fall ~21%, because those windows
 //       leaned on the 2010 baseline, which has no calendar neighbour.
+// Wildfire is versioned on the same rule:
+//   wildfire-v1: regions derived from all_fmu_boundary_border.shp, the
+//       pre-amalgamation FMU set -- `pic`, `boundarywaters` and `missinaibi` had
+//       no COG at all, and several files were clipped to boundaries the app does
+//       not draw.
+//   wildfire-v2: regions taken from the app's own data/regions/ontario-index.json,
+//       so ids and clip geometry match what the client requests by construction.
+//   wildfire-v3: burned pixels written as class 1 of wildfire's own table
+//       (wildfireClasses.js) rather than class 3 of the clearcut model's. Same
+//       geometry as v2 -- only the pixel value changed.
 const COG_PREFIX_BY_LAYER = {
   'clearcut-annual': 'clearcut-annual',
   'clearcut-accumulated': 'clearcut-accumulated-v4',
+  'wildfire-burned': 'wildfire-v3',
 };
 
 // The prefix coverage is judged against. Accumulated and annual are generated
@@ -46,18 +57,43 @@ const COG_PREFIX_BY_LAYER = {
 export const COG_PREFIX_FOR_COVERAGE = COG_PREFIX_BY_LAYER['clearcut-accumulated'];
 
 /**
- * Per-year clearcut COG URL for a given layer.
+ * The COG prefix a layer DRAWS from, or null if it has no COG product.
+ *
+ * Callers fall back to PNG tiles on null.
+ */
+export function cogPrefixForLayer(layerId) {
+  return COG_PREFIX_BY_LAYER[layerId] ?? null;
+}
+
+/**
+ * The COG prefix whose coverage ANSWERS for a layer.
+ *
+ * Usually the same prefix, but not always: the two clearcut products are
+ * generated together, so accumulated's coverage answers for annual too. They are
+ * still different rasters -- only availability is shared, never the URL, or the
+ * annual layer would draw the accumulated raster.
+ *
+ * Separate from the URL because coverage is keyed per prefix, so a caller asking
+ * "does this region-year exist" has to say which product it means. Wildfire holds
+ * different region-years from clearcut -- wabigoon has clearcut for twelve years
+ * and fire for one -- so one shared set would have each layer answering for the
+ * other.
+ */
+export function coveragePrefixForLayer(layerId) {
+  if (layerId === 'clearcut-annual') return COG_PREFIX_FOR_COVERAGE;
+  return cogPrefixForLayer(layerId);
+}
+
+/**
+ * Per-year COG URL from a resolved prefix.
  *
  * Filenames carry no content hash, so a regenerated year reuses its URL. That's
  * deliberate -- the app's year slider builds these paths by convention rather than
  * from a manifest -- but it means the immutable Cache-Control set at upload time
  * would pin a stale file. Regenerate under a new prefix (or purge) rather than
  * overwriting in place.
- *
- * Returns null for a layer with no COG product, so callers fall back to PNG tiles.
  */
-export function clearcutCogUrl(layerId, region, year) {
-  const prefix = COG_PREFIX_BY_LAYER[layerId];
+export function cogUrlForPrefix(prefix, region, year) {
   if (!prefix) return null;
   return `${COG_BASE_URL}/cogs/${prefix}/${region}_${year}.tif`;
 }

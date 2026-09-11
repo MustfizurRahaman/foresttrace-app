@@ -3,7 +3,8 @@ import Map, { Source, Layer, NavigationControl, useMap } from 'react-map-gl/mapl
 import maplibregl from 'maplibre-gl';
 import { cogProtocol, setColorFunction } from '@geomatico/maplibre-cog-protocol';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { buildClassColorFunction, DEFAULT_VISIBLE_CLASSES, CLEARCUT_CLASS_ID } from '../utils/clearcutClasses';
+import { buildClassColorFunction } from '../utils/rasterClasses';
+import { CLEARCUT_CLASSES, DEFAULT_VISIBLE_CLASSES, CLEARCUT_CLASS_ID } from '../utils/clearcutClasses';
 import { ensureTintedProtocol, onTintActivity } from '../utils/tintedTileProtocol';
 
 // COG support is a URL protocol handler, not a layer type: once registered,
@@ -561,11 +562,26 @@ function MapLibreMap({
   const cogSignature = cogLayers.map((l) => `${l.url}:${l.color || ''}`).join('|');
   useMemo(() => {
     cogLayers.forEach((layer) => {
+      // Each layer brings its own class table. Clearcut's 6-class U-Net labels and
+      // wildfire's single burned class are unrelated vocabularies that happen to
+      // share this renderer, so defaulting to one of them would let a layer paint
+      // by another module's numbering.
+      const palette = layer.palette || CLEARCUT_CLASSES;
       const visibleClasses = layer.visibleClasses || DEFAULT_VISIBLE_CLASSES;
-      const overrides = layer.color ? { [CLEARCUT_CLASS_ID]: layer.color } : {};
+      // Which class the layer's colour overrides. Clearcut paints class 2,
+      // wildfire class 1, so this cannot be a literal or the override lands on a
+      // class the raster never contains and the layer renders in the palette's
+      // own colour instead of its own.
+      const colorClass = layer.colorClass ?? CLEARCUT_CLASS_ID;
+      const overrides = layer.color ? { [colorClass]: layer.color } : {};
       setColorFunction(
         layer.url,
-        buildClassColorFunction(visibleClasses, 255, overrides),
+        buildClassColorFunction({
+          palette,
+          visibleClasses,
+          alpha: 255,
+          colorOverrides: overrides,
+        }),
       );
     });
     // cogSignature stands in for the layer list: the array identity changes on

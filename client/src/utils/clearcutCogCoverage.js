@@ -1,4 +1,4 @@
-import { clearcutCogUrl, COG_BASE_URL, COG_PREFIX_FOR_COVERAGE as COG_PREFIX } from '../config';
+import { COG_BASE_URL, COG_PREFIX_FOR_COVERAGE as DEFAULT_COG_PREFIX } from '../config';
 
 /**
  * Which region/year pairs actually have a clearcut COG.
@@ -61,9 +61,9 @@ export async function getTileCoverage(tileLayer) {
 }
 
 /** `${region}_${year}` keys the manifest says exist, or null if there is none. */
-async function coverageFromManifest() {
+async function coverageFromManifest(prefix) {
   const manifest = await loadManifest();
-  const byRegion = manifest?.prefixes?.[COG_PREFIX];
+  const byRegion = manifest?.prefixes?.[prefix];
   if (!byRegion) return null;
   const covered = new Set();
   for (const [region, years] of Object.entries(byRegion)) {
@@ -72,37 +72,34 @@ async function coverageFromManifest() {
   return covered;
 }
 
-// `${region}_${year}` -> Promise<boolean>
+// `${prefix}/${region}_${year}` -> Promise<boolean>. The prefix is part of the
+// key because two products can hold the same region-year: wabigoon_2025 exists as
+// both a clearcut and a wildfire COG, and a shared key would let whichever was
+// probed first answer for the other.
 const cache = new Map();
 
-// Availability is a property of the raster, not of which layer renders it, so
-// the accumulated product stands in for both.
-const PROBE_LAYER_ID = 'clearcut-accumulated';
-
-function probe(region, year) {
-  const key = `${region}_${year}`;
+function probe(prefix, region, year) {
+  const key = `${prefix}/${region}_${year}`;
   if (!cache.has(key)) {
-    const url = clearcutCogUrl(PROBE_LAYER_ID, region, year);
-    cache.set(
-      key,
-      url
-        ? fetch(url, { method: 'HEAD' }).then((r) => r.ok).catch(() => false)
-        : Promise.resolve(false),
-    );
+    // Built from the prefix rather than from a layer id: availability is a
+    // property of the raster, not of which layer renders it.
+    const url = `${COG_BASE_URL}/cogs/${prefix}/${region}_${year}.tif`;
+    cache.set(key, fetch(url, { method: 'HEAD' }).then((r) => r.ok).catch(() => false));
   }
   return cache.get(key);
 }
 
 /**
  * @param {Array<{region: string, years: number[]}>} wanted region/year pairs worth probing
+ * @param {string} [prefix] which COG product to ask about; defaults to clearcut's
  * @returns {Promise<Set<string>>} `${region}_${year}` keys that have a COG
  */
-export async function getCogCoverage(wanted) {
-  const fromManifest = await coverageFromManifest();
+export async function getCogCoverage(wanted, prefix = DEFAULT_COG_PREFIX) {
+  const fromManifest = await coverageFromManifest(prefix);
   if (fromManifest) return fromManifest;
 
   const pairs = wanted.flatMap(({ region, years }) => years.map((year) => ({ region, year })));
-  const present = await Promise.all(pairs.map(({ region, year }) => probe(region, year)));
+  const present = await Promise.all(pairs.map(({ region, year }) => probe(prefix, region, year)));
   return new Set(pairs.filter((_, i) => present[i]).map(({ region, year }) => `${region}_${year}`));
 }
 
