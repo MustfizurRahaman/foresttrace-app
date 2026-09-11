@@ -516,6 +516,7 @@ function MapLibreMap({
   satelliteAttribution,
   lightBasemap,
   regionsData = null,
+  rangeBoundaries = null,
   rasterLayers = [],
   cogLayers = [],
   rasterOpacity = 0.5,
@@ -572,8 +573,14 @@ function MapLibreMap({
       // wildfire class 1, so this cannot be a literal or the override lands on a
       // class the raster never contains and the layer renders in the palette's
       // own colour instead of its own.
-      const colorClass = layer.colorClass ?? CLEARCUT_CLASS_ID;
-      const overrides = layer.color ? { [colorClass]: layer.color } : {};
+      //
+      // An explicit null means "override nothing": caribou's five-step ramp IS
+      // the information, so repainting one of its classes would destroy the
+      // reading. Undefined still means the clearcut default.
+      const colorClass = layer.colorClass === undefined ? CLEARCUT_CLASS_ID : layer.colorClass;
+      const overrides = (layer.color && colorClass !== null)
+        ? { [colorClass]: layer.color }
+        : {};
       setColorFunction(
         layer.url,
         buildClassColorFunction({
@@ -638,6 +645,28 @@ function MapLibreMap({
             paint={{
               'line-color': basemapMode === 'satellite' ? '#ffffff' : '#333333',
               'line-width': 1.5,
+            }}
+          />
+        </Source>
+      )}
+
+      {/* Caribou range outlines. Declared AFTER the raster sources so MapLibre
+          paints them above the habitat they annotate -- layers render in the
+          order they are added, and an outline under the raster is invisible.
+          Line-only, no fill, for the same reason.
+
+          Colour is data-driven off a property resolved in App: MapLibre has no
+          per-feature style callback, so seven ranges in one source cannot be
+          styled by a function the way Leaflet's onEachFeature does it. */}
+      {rangeBoundaries && (
+        <Source id="caribou-ranges" type="geojson" data={rangeBoundaries}>
+          <Layer
+            id="caribou-ranges-outline"
+            type="line"
+            paint={{
+              'line-color': ['coalesce', ['get', '_lineColor'], '#333333'],
+              'line-width': 2,
+              'line-opacity': 1,
             }}
           />
         </Source>

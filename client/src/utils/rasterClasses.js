@@ -20,12 +20,12 @@ function hexToRgb(hex) {
  * table up front rather than doing hex parsing or object lookups in the loop.
  *
  * @param {Object} opts
- * @param {Object<number,{name:string,color:?string}>} opts.palette the layer's own
- *   class table. Required -- no default, so a layer cannot silently borrow
- *   another module's numbering.
+ * @param {Object<number,{name:string,color:?string,alpha:?number}>} opts.palette
+ *   the layer's own class table. Required -- no default, so a layer cannot
+ *   silently borrow another module's numbering. A class may carry its own alpha.
  * @param {number[]} opts.visibleClasses class IDs to paint; everything else is
  *   transparent.
- * @param {number} [opts.alpha=255] 0-255 opacity for painted pixels.
+ * @param {number} [opts.alpha=255] 0-255 opacity for classes that declare none.
  * @param {Object<number,string>} [opts.colorOverrides] per-class hex overrides.
  *   Clearcut's accumulated and annual layers render the SAME class (2) from
  *   different rasters, so the palette alone would paint both identically.
@@ -45,7 +45,7 @@ export function buildClassColorFunction({
   (visibleClasses || []).forEach((id) => {
     const color = colorOverrides[id] ?? palette[id]?.color;
     if (!color) return;
-    lut[id] = [...hexToRgb(color), alpha];
+    lut[id] = [...hexToRgb(color), palette[id]?.alpha ?? alpha];
   });
 
   return function classColorFunction(pixel, color, metadata) {

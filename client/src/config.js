@@ -46,10 +46,18 @@ export const COG_BASE_URL = process.env.REACT_APP_COG_BASE_URL || TILES_BASE_URL
 //   wildfire-v3: burned pixels written as class 1 of wildfire's own table
 //       (wildfireClasses.js) rather than class 3 of the clearcut model's. Same
 //       geometry as v2 -- only the pixel value changed.
+// Caribou ships TWO products because the layer has two modes and neither raster
+// answers for the other:
+//   caribou-v1      per RANGE  (berens_2021)    -- one range, nothing else
+//   caribou-fmu-v1  per FMU    (troutlake_2021) -- every range reaching that FMU
+// An FMU raster carries all three ranges crossing troutlake, which is right when
+// you asked for that FMU and wrong when you asked for Berens.
 const COG_PREFIX_BY_LAYER = {
   'clearcut-annual': 'clearcut-annual',
   'clearcut-accumulated': 'clearcut-accumulated-v4',
   'wildfire-burned': 'wildfire-v3',
+  'caribou-habitat': 'caribou-v1',
+  'caribou-habitat-fmu': 'caribou-fmu-v1',
 };
 
 // The prefix coverage is judged against. Accumulated and annual are generated
@@ -59,9 +67,14 @@ export const COG_PREFIX_FOR_COVERAGE = COG_PREFIX_BY_LAYER['clearcut-accumulated
 /**
  * The COG prefix a layer DRAWS from, or null if it has no COG product.
  *
- * Callers fall back to PNG tiles on null.
+ * Callers fall back to PNG tiles on null. Caribou is the one layer whose id does
+ * not settle this on its own -- it resolves to a different product per mode, so
+ * the mode has to travel with the lookup.
  */
-export function cogPrefixForLayer(layerId) {
+export function cogPrefixForLayer(layerId, { caribouRangeMode = false } = {}) {
+  if (layerId === 'caribou-habitat') {
+    return COG_PREFIX_BY_LAYER[caribouRangeMode ? 'caribou-habitat' : 'caribou-habitat-fmu'];
+  }
   return COG_PREFIX_BY_LAYER[layerId] ?? null;
 }
 
@@ -79,9 +92,9 @@ export function cogPrefixForLayer(layerId) {
  * and fire for one -- so one shared set would have each layer answering for the
  * other.
  */
-export function coveragePrefixForLayer(layerId) {
+export function coveragePrefixForLayer(layerId, opts) {
   if (layerId === 'clearcut-annual') return COG_PREFIX_FOR_COVERAGE;
-  return cogPrefixForLayer(layerId);
+  return cogPrefixForLayer(layerId, opts);
 }
 
 /**
