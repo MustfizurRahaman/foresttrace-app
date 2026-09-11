@@ -650,28 +650,6 @@ function MapLibreMap({
         </Source>
       )}
 
-      {/* Caribou range outlines. Declared AFTER the raster sources so MapLibre
-          paints them above the habitat they annotate -- layers render in the
-          order they are added, and an outline under the raster is invisible.
-          Line-only, no fill, for the same reason.
-
-          Colour is data-driven off a property resolved in App: MapLibre has no
-          per-feature style callback, so seven ranges in one source cannot be
-          styled by a function the way Leaflet's onEachFeature does it. */}
-      {rangeBoundaries && (
-        <Source id="caribou-ranges" type="geojson" data={rangeBoundaries}>
-          <Layer
-            id="caribou-ranges-outline"
-            type="line"
-            paint={{
-              'line-color': ['coalesce', ['get', '_lineColor'], '#333333'],
-              'line-width': 2,
-              'line-opacity': 1,
-            }}
-          />
-        </Source>
-      )}
-
       {rasterLayers.map((layer) => (
         <Source
           key={layer.id}
@@ -708,6 +686,28 @@ function MapLibreMap({
           />
         </Source>
       ))}
+
+      {/* Caribou range outlines. Must stay AFTER both raster blocks: MapLibre
+          paints layers in the order they are added, so declared any earlier the
+          outline sits under the habitat it annotates and is invisible wherever
+          that habitat is opaque. Line-only, no fill, for the same reason.
+
+          Colour is data-driven off a property resolved in App: MapLibre has no
+          per-feature style callback, so seven ranges in one source cannot be
+          styled by a function the way Leaflet's onEachFeature does it. */}
+      {rangeBoundaries && (
+        <Source id="caribou-ranges" type="geojson" data={rangeBoundaries}>
+          <Layer
+            id="caribou-ranges-outline"
+            type="line"
+            paint={{
+              'line-color': ['coalesce', ['get', '_lineColor'], '#333333'],
+              'line-width': 2,
+              'line-opacity': 1,
+            }}
+          />
+        </Source>
+      )}
 
       <DrawingTools
         onCreate={onShapeCreate}
